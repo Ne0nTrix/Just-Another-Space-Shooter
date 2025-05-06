@@ -104,6 +104,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(ProjectDir)source;$(ProjectDir)headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -138,26 +139,30 @@
     <Image Include="assets\Space_Background.png" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Background.h" />
-    <ClInclude Include="Bullet.h" />
-    <ClInclude Include="ComplexEnemy.h" />
-    <ClInclude Include="Enemy.h" />
-    <ClInclude Include="Entity.h" />
-    <ClInclude Include="GameState.h" />
-    <ClInclude Include="GameStateManager.h" />
-    <ClInclude Include="Obstacle.h" />
-    <ClInclude Include="Player.h" />
+    <ClCompile Include="source\Background.cpp" />
+    <ClCompile Include="source\Bullet.cpp" />
+    <ClCompile Include="source\ComplexEnemy.cpp" />
+    <ClCompile Include="source\Enemy.cpp" />
+    <ClCompile Include="source\Entity.cpp" />
+    <ClCompile Include="source\GameStateManager.cpp" />
+    <ClCompile Include="source\main.cpp" />
+    <ClCompile Include="source\Obstacle.cpp" />
+    <ClCompile Include="source\Player.cpp" />
+    <ClCompile Include="source\PlayerData.cpp" />
+    <ClCompile Include="source\Scoreboard.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Background.cpp" />
-    <ClCompile Include="Bullet.cpp" />
-    <ClCompile Include="ComplexEnemy.cpp" />
-    <ClCompile Include="Enemy.cpp" />
-    <ClCompile Include="Entity.cpp" />
-    <ClCompile Include="GameStateManager.cpp" />
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="Obstacle.cpp" />
-    <ClCompile Include="Player.cpp" />
+    <ClInclude Include="headers\Background.h" />
+    <ClInclude Include="headers\Bullet.h" />
+    <ClInclude Include="headers\ComplexEnemy.h" />
+    <ClInclude Include="headers\Enemy.h" />
+    <ClInclude Include="headers\Entity.h" />
+    <ClInclude Include="headers\GameState.h" />
+    <ClInclude Include="headers\GameStateManager.h" />
+    <ClInclude Include="headers\Obstacle.h" />
+    <ClInclude Include="headers\Player.h" />
+    <ClInclude Include="headers\PlayerData.h" />
+    <ClInclude Include="headers\Scoreboard.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

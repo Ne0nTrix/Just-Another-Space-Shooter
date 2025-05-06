@@ -2,10 +2,16 @@
 
 enum class GameState {
     MAIN_MENU,
-    LEVEL_1,
-    LEVEL_2,
-    LEVEL_3,
+    MODE_SELECTION,
+    CLASSIC_LEVEL_1,
+    CLASSIC_LEVEL_2,
+    CLASSIC_LEVEL_3,
+    NAME_INPUT,
+    DIFFICULTY_SELECTION,
+    INFINITE_MODE,
     PAUSE,
     WIN,
     GAME_OVER,
+    SCOREBOARD,
+    EXIT
 };

@@ -1,19 +1,21 @@
 #include "GameStateManager.h"
 
 GameStateManager::GameStateManager(GameState initialState)
-: currentState(initialState) {}
+    : currentState(initialState), previousState(initialState) {}
 
-GameState GameStateManager::getCurrentState() const
-{
-	return currentState;
+GameState GameStateManager::getCurrentState() const {
+    return currentState;
 }
 
-void GameStateManager::setCurrentState(GameState newState)
-{
-	currentState = newState;
+GameState GameStateManager::getPreviousState() const {
+    return previousState;
 }
 
-bool GameStateManager::isState(GameState state) const
-{
-	return currentState == state;
+void GameStateManager::setCurrentState(GameState newState) {
+    previousState = currentState;
+    currentState = newState;
+}
+
+bool GameStateManager::isState(GameState state) const {
+    return currentState == state;
 }

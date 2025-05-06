@@ -5,8 +5,12 @@
 #include "Obstacle.h"
 #include "GameStateManager.h"
 #include "ComplexEnemy.h"
+#include "PlayerData.h"
+#include "Scoreboard.h"
 #include <vector>
 #include <iostream>
+#include <string>
+#include <algorithm>
 
 bool canSpawnEnemies = false;
 
@@ -84,30 +88,234 @@ int main() {
 
     int destroyedMeteors = 0;
     int maxMeteors = 10;
+    int maxEnemies = 3;
 
     bool gameOver = false;
     bool newLevel = true;
 
+    // New game components
+    PlayerData playerData;
+    Scoreboard scoreboard;
+    std::string inputName = "";
+    bool showCursor = true;
+    float cursorBlinkTime = 0.0f;
+    float gameTimeElapsed = 0.0f;
+    int infiniteScore = 0;
+
+    // For name input
+    const int MAX_NAME_LENGTH = 15;
+    float nameInputTimer = 0.0f;
+
+    static int selectedOption = 0;
+    static int selectedMode = 0;
+    static int selectedDiff = 1;
+    static int selectedPauseOption = 0;
+
+    const char* options[] = { "PLAY GAME", "SCOREBOARD", "EXIT" };
+    const int numOptions = 3;
+
+    const char* modeOptions[] = { "CLASSIC MODE", "INFINITE MODE", "BACK" };
+    const int numModeOptions = 3;
+
+    const char* diffOptions[] = { "EASY", "MEDIUM", "HARD", "BACK" };
+    const int numDiffOptions = 4;
+
+    const char* pauseOptions[] = { "RESUME", "QUIT TO MENU" };
+    const int numPauseOptions = 2;
+
     while (!WindowShouldClose()) {
-        // for debugging
-        //if (IsKeyDown(KEY_KP_1)) gameStateManager.setCurrentState(GameState::LEVEL_1);
-        //if (IsKeyDown(KEY_KP_2)) gameStateManager.setCurrentState(GameState::LEVEL_2);
-        //if (IsKeyDown(KEY_KP_3)) gameStateManager.setCurrentState(GameState::LEVEL_3);
+        float deltaTime = GetFrameTime();
+        gameTimeElapsed += deltaTime;
+
         switch (gameStateManager.getCurrentState()) {
 
         case GameState::MAIN_MENU:
+        {
             BeginDrawing();
             ClearBackground(BLACK);
-            DrawText("Press ENTER to Start", WIDTH / 2 - MeasureText("Press ENTER to Start", 40) / 2, HEIGHT / 2 - 20, 40, GREEN);
-            EndDrawing();
 
-            if (IsKeyPressed(KEY_ENTER)) {
-                gameStateManager.setCurrentState(GameState::LEVEL_1);
-                newLevel = true;
+            // Draw improved menu
+            DrawText("SPACE SHOOTER", WIDTH / 2 - MeasureText("SPACE SHOOTER", 60) / 2, HEIGHT / 4, 60, GREEN);
+
+            // Draw menu options
+            for (int i = 0; i < numOptions; i++) {
+                Color optionColor = (i == selectedOption) ? GREEN : GRAY;
+                DrawText(options[i], WIDTH / 2 - MeasureText(options[i], 30) / 2, HEIGHT / 2 + i * 60, 30, optionColor);
             }
-            break;
 
-        case GameState::LEVEL_1:
+            // Menu navigation
+            if (IsKeyPressed(KEY_UP)) {
+                selectedOption = (selectedOption > 0) ? selectedOption - 1 : numOptions - 1;
+            }
+            if (IsKeyPressed(KEY_DOWN)) {
+                selectedOption = (selectedOption + 1) % numOptions;
+            }
+
+            // Menu selection
+            if (IsKeyPressed(KEY_ENTER)) {
+                switch (selectedOption) {
+                case 0: // Play game
+                    gameStateManager.setCurrentState(GameState::MODE_SELECTION);
+                    break;
+                case 1: // Scoreboard
+                    gameStateManager.setCurrentState(GameState::SCOREBOARD);
+                    break;
+                case 2: // Exit
+                    gameStateManager.setCurrentState(GameState::EXIT);
+                    break;
+                }
+            }
+
+            EndDrawing();
+        }
+        break;
+
+        case GameState::MODE_SELECTION:
+        {
+            BeginDrawing();
+            ClearBackground(BLACK);
+
+            DrawText("SELECT GAME MODE", WIDTH / 2 - MeasureText("SELECT GAME MODE", 40) / 2, HEIGHT / 4, 40, GREEN);
+
+            // Draw mode options
+            for (int i = 0; i < numModeOptions; i++) {
+                Color optionColor = (i == selectedMode) ? GREEN : GRAY;
+                DrawText(modeOptions[i], WIDTH / 2 - MeasureText(modeOptions[i], 30) / 2, HEIGHT / 2 + i * 60, 30, optionColor);
+            }
+
+            // Mode navigation
+            if (IsKeyPressed(KEY_UP)) {
+                selectedMode = (selectedMode > 0) ? selectedMode - 1 : numModeOptions - 1;
+            }
+            if (IsKeyPressed(KEY_DOWN)) {
+                selectedMode = (selectedMode + 1) % numModeOptions;
+            }
+
+            // Mode selection
+            if (IsKeyPressed(KEY_ENTER)) {
+                switch (selectedMode) {
+                case 0: // Classic Mode
+                    gameStateManager.setCurrentState(GameState::CLASSIC_LEVEL_1);
+                    newLevel = true;
+                    gameOver = false;
+                    break;
+                case 1: // Infinite Mode
+                    gameStateManager.setCurrentState(GameState::DIFFICULTY_SELECTION);
+                    inputName = "";
+                    break;
+                case 2: // Back
+                    gameStateManager.setCurrentState(GameState::MAIN_MENU);
+                    break;
+                }
+            }
+
+            EndDrawing();
+        }
+        break;
+
+        case GameState::NAME_INPUT:
+        {
+            // Cursor blink timer
+            cursorBlinkTime += deltaTime;
+            if (cursorBlinkTime >= 0.5f) {
+                showCursor = !showCursor;
+                cursorBlinkTime = 0.0f;
+            }
+            
+            // Handle key input for name
+            int key = GetCharPressed();
+            while (key > 0) {
+                if ((key >= 32) && (key <= 125) && (inputName.length() < MAX_NAME_LENGTH)) {
+                    inputName += (char)key;
+                }
+                key = GetCharPressed();
+            }
+            
+            // Handle backspace
+            if (IsKeyPressed(KEY_BACKSPACE) && !inputName.empty()) {
+                inputName.pop_back();
+            }
+            
+            BeginDrawing();
+            ClearBackground(BLACK);
+            
+            DrawText("ENTER YOUR NAME:", WIDTH / 2 - MeasureText("ENTER YOUR NAME:", 40) / 2, HEIGHT / 3, 40, GREEN);
+            
+            // Draw input box
+            DrawRectangle(WIDTH / 2 - 200, HEIGHT / 2 - 25, 400, 50, DARKGRAY);
+            DrawRectangleLines(WIDTH / 2 - 200, HEIGHT / 2 - 25, 400, 50, GREEN);
+            
+            // Declare displayName at the beginning of the scope
+            std::string displayName = inputName;
+            if (showCursor) {
+                displayName += "|";
+            }
+            DrawText(displayName.c_str(), WIDTH / 2 - MeasureText(displayName.c_str(), 30) / 2, HEIGHT / 2 - 15, 30, WHITE);
+            
+            DrawText("Press ENTER to continue", WIDTH / 2 - MeasureText("Press ENTER to continue", 20) / 2, HEIGHT * 2 / 3, 20, GRAY);
+            
+            EndDrawing();
+            
+            // Continue to difficulty selection when Enter is pressed
+            if (IsKeyPressed(KEY_ENTER) && !inputName.empty()) {
+                playerData.setPlayerName(inputName);
+                gameStateManager.setCurrentState(GameState::INFINITE_MODE);
+                newLevel = true;
+                gameOver = false;
+            }
+        }
+        break;
+
+        case GameState::DIFFICULTY_SELECTION:
+        {
+            BeginDrawing();
+            ClearBackground(BLACK);
+            
+            DrawText("SELECT DIFFICULTY", WIDTH / 2 - MeasureText("SELECT DIFFICULTY", 40) / 2, HEIGHT / 4, 40, GREEN);
+            
+            const char* diffOptions[] = { "EASY", "MEDIUM", "HARD", "BACK" };
+            const int numDiffOptions = 4;
+            
+            // Draw difficulty options
+            for (int i = 0; i < numDiffOptions; i++) {
+                Color optionColor = (i == selectedDiff) ? GREEN : GRAY;
+                DrawText(diffOptions[i], WIDTH / 2 - MeasureText(diffOptions[i], 30) / 2, HEIGHT / 2 + i * 60, 30, optionColor);
+            }
+            
+            // Difficulty navigation
+            if (IsKeyPressed(KEY_UP)) {
+                selectedDiff = (selectedDiff > 0) ? selectedDiff - 1 : numDiffOptions - 1;
+            }
+            if (IsKeyPressed(KEY_DOWN)) {
+                selectedDiff = (selectedDiff + 1) % numDiffOptions;
+            }
+            
+            // Difficulty selection
+            if (IsKeyPressed(KEY_ENTER)) {
+                switch (selectedDiff) {
+                    case 0: // Easy
+                        playerData.setDifficulty(Difficulty::EASY);
+                        break;
+                    case 1: // Medium
+                        playerData.setDifficulty(Difficulty::MEDIUM);
+                        break;
+                    case 2: // Hard
+                        playerData.setDifficulty(Difficulty::HARD);
+                        break;
+                    case 3: // Back
+                        gameStateManager.setCurrentState(GameState::MODE_SELECTION);
+                        break;
+                }
+                playerData.resetScore();
+                gameStateManager.setCurrentState(GameState::NAME_INPUT);
+            }
+            
+            EndDrawing();
+        }
+        break;
+
+        case GameState::CLASSIC_LEVEL_1:
+        {
             if (!gameOver) {
                 if (newLevel) {
                     ShowLevelTransitionScreen("LEVEL 1", WIDTH, HEIGHT);
@@ -126,7 +334,7 @@ int main() {
                         destroyedMeteors++;
                         i--;
                         if (destroyedMeteors >= maxMeteors) {
-                            gameStateManager.setCurrentState(GameState::LEVEL_2);
+                            gameStateManager.setCurrentState(GameState::CLASSIC_LEVEL_2);
                             newLevel = true;
                         }
                     }
@@ -195,9 +403,11 @@ int main() {
             }
             EndDrawing();
             if (gameOver) gameStateManager.setCurrentState(GameState::GAME_OVER);
-            break;
+        }
+        break;
 
-        case GameState::LEVEL_2:
+        case GameState::CLASSIC_LEVEL_2:
+        {
             if (!gameOver) {
                 if (newLevel) {
                     ShowLevelTransitionScreen("LEVEL 2", WIDTH, HEIGHT);
@@ -311,7 +521,7 @@ int main() {
                 if (player.GetHealth() <= 0) gameOver = true;
 
                 if (enemies.empty()) {
-                    gameStateManager.setCurrentState(GameState::LEVEL_3);
+                    gameStateManager.setCurrentState(GameState::CLASSIC_LEVEL_3);
                     newLevel = true;
                 }
 
@@ -358,9 +568,11 @@ int main() {
                 EndDrawing();
                 if (gameOver) gameStateManager.setCurrentState(GameState::GAME_OVER);
             }
-            break;
+        }
+        break;
 
-        case GameState::LEVEL_3:
+        case GameState::CLASSIC_LEVEL_3:
+        {
             if (!gameOver) {
                 if (newLevel) {
                     ShowLevelTransitionScreen("LEVEL 3", WIDTH, HEIGHT);
@@ -510,13 +722,359 @@ int main() {
                     EndDrawing();
                     if (gameOver) gameStateManager.setCurrentState(GameState::GAME_OVER);
                 }
-            break;
+        }
+        break;
 
-        case GameState::GAME_OVER:
+        case GameState::INFINITE_MODE:
+        {  // Add opening brace to create proper scope
+            if (!gameOver) {
+                if (newLevel) {
+                    // Initialize infinite mode
+                    player.posx = initialPosX;
+                    player.posy = initialPosY;
+                    player.SetHealth(3);
+                    meteors.clear();
+                    enemies.clear();
+                    complexEnemies.clear();
+                    bullets.clear();
+                    enemyBullets.clear();
+                    
+                    // Set difficulty parameters based on player's selection
+                    int numEnemies, numMeteors;
+                    float enemySpeed, meteorSpeed;
+                    switch (playerData.getDifficulty()) {
+                        case Difficulty::EASY:
+                            numEnemies = 3;
+                            maxEnemies = 3;
+                            numMeteors = 10;
+                            enemySpeed = 100.0f;
+                            meteorSpeed = 150.0f;
+                            break;
+                        case Difficulty::MEDIUM:
+                            numEnemies = 5;
+                            maxEnemies = 5;
+                            numMeteors = 15;
+                            enemySpeed = 150.0f;
+                            meteorSpeed = 200.0f;
+                            break;
+                        case Difficulty::HARD:
+                            numEnemies = 8;
+                            maxEnemies = 8;
+                            numMeteors = 20;
+                            enemySpeed = 200.0f;
+                            meteorSpeed = 250.0f;
+                            break;
+                    }
+                    
+                    // Spawn enemies
+                    for (int i = 0; i < numEnemies; i++) {
+                        float posX = GetRandomValue(0, WIDTH - 32);
+                        float posY = GetRandomValue(0, HEIGHT / 8);
+                        complexEnemies.push_back(ComplexEnemy(&enemyTexture, posX, posY, enemySpeed));
+                    }
+                    
+                    // Spawn meteors
+                    maxMeteors = numMeteors;
+                    while (meteors.size() < maxMeteors) {
+                        CreateMeteor(meteors, &smallMeteorTexture, &mediumMeteorTexture, &largeMeteorTexture, 
+                                     GetRandomValue(0, 2), 0, 0, player.posx, player.posy, 200.0f);
+                    }
+                    
+                    newLevel = false;
+                }
+                for (auto& meteor : meteors) meteor.Update();
+
+                while (meteors.size() < maxMeteors) {
+                    CreateMeteor(meteors, &smallMeteorTexture, &mediumMeteorTexture, &largeMeteorTexture, 
+                                GetRandomValue(0, 2), 0, 0, player.posx, player.posy, 200.0f);
+                }
+                // Update complex enemies
+                for (auto& enemy : complexEnemies) {
+                    enemy.SetPlayerPosition({ player.posx, player.posy });
+                    enemy.Update(complexEnemies);
+                    if (enemy.isActive) {
+                        if (enemy.CanShoot(GetFrameTime())) {
+                            Vector2 bulletDirection = { cos((enemy.rotation + 90) * DEG2RAD), sin((enemy.rotation + 90) * DEG2RAD) };
+                            Bullet newBullet(&enemyBulletTexture, enemy.posx + enemy.size / 2.0f, enemy.posy + enemy.size / 2.0f, 4, bulletDirection, 350.0f);
+                            enemyBullets.push_back(newBullet);
+                        }
+                    }
+                }
+
+                // Handle collisions
+                for (auto& bullet : enemyBullets) {
+                    bullet.Update();
+                    if (bullet.posy > GetScreenHeight()) {
+                        bullet.isActive = false;
+                    }
+                }
+
+                enemyBullets.erase(std::remove_if(enemyBullets.begin(), enemyBullets.end(),
+                    [](Bullet& b) { return !b.isActive; }),
+                    enemyBullets.end());
+
+                for (auto& bullet : enemyBullets) {
+                    if (bullet.isActive && CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
+                        { player.posx, player.posy }, player.size / 2.0f)) {
+                        bullet.isActive = false;
+                        player.SetHealth(player.GetHealth() - 1);
+                    }
+                }
+
+                for (auto& meteor : meteors) {
+                    if (meteor.isActive && CheckCollision({ player.posx, player.posy }, player.size / 2.0f,
+                        { meteor.posx + meteor.size / 2.0f, meteor.posy + meteor.size / 2.0f }, meteor.size / 2.0f)) {
+                        meteor.isActive = false;
+                        player.SetHealth(player.GetHealth() - 1);
+                    }
+                }
+
+                for (auto& bullet : bullets) {
+                    for (auto& meteor : meteors) {
+                        if (bullet.isActive && meteor.isActive &&
+                            CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
+                                { meteor.posx + meteor.size / 2.0f, meteor.posy + meteor.size / 2.0f }, meteor.size / 2.0f)) {
+                            bullet.isActive = false;
+                            meteor.isActive = false;
+                        }
+                    }
+                }
+
+                for (auto& bullet : bullets) {
+                    for (auto& enemy : complexEnemies) {
+                        if (bullet.isActive && enemy.isActive &&
+                            CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
+                                { enemy.posx, enemy.posy }, enemy.size / 2.0f)) {
+                            bullet.isActive = false;
+                            enemy.isActive = false;
+                        }
+                    }
+                }
+
+                for (auto& enemy : complexEnemies) {
+                    if (enemy.isActive && CheckCollision({ player.posx, player.posy }, player.size / 2.0f,
+                        { enemy.posx, enemy.posy }, enemy.size / 2.0f)) {
+                        enemy.isActive = false;
+                        player.SetHealth(player.GetHealth() - 1);
+                    }
+                }
+
+                // Update player and bullets
+                player.Event(bullets, &bulletTexture, 300.0f);
+                player.Update();
+                bg.Update();
+
+                if (player.GetHealth() <= 0) {
+                    gameOver = true;  // This is the critical line you're missing
+                }
+
+                for (auto& bullet : bullets) {
+                    bullet.Update();
+                    if (bullet.posy > GetScreenHeight()) {
+                        bullet.isActive = false;
+                    }
+                }
+
+                bullets.erase(std::remove_if(bullets.begin(), bullets.end(),
+                    [](Bullet& b) { return !b.isActive; }),
+                    bullets.end());
+
+                // Check for meteor destruction and respawn
+                for (size_t i = 0; i < meteors.size(); i++) {
+                    if (!meteors[i].isActive) {
+                        meteors.erase(meteors.begin() + i);
+                        playerData.addScore(10);  // Add score for destroying meteor
+                        i--;
+                    }
+                }
+
+                // Check for enemy destruction
+                for (size_t i = 0; i < complexEnemies.size(); i++) {
+                    if (!complexEnemies[i].isActive) {
+                        complexEnemies.erase(complexEnemies.begin() + i);
+                        playerData.addScore(50);  // Add score for destroying enemy
+                        i--;
+                    }
+                }
+
+                // Spawn new enemies occasionally
+                if (complexEnemies.size() < maxEnemies) {
+                    float posX = GetRandomValue(0, WIDTH - 32);
+                    float posY = GetRandomValue(0, HEIGHT / 8);
+                    float speed;
+                    switch (playerData.getDifficulty()) {
+                        case Difficulty::EASY: speed = 100.0f; break;
+                        case Difficulty::MEDIUM: speed = 150.0f; break;
+                        case Difficulty::HARD: speed = 200.0f; break;
+                    }
+                    complexEnemies.push_back(ComplexEnemy(&enemyTexture, posX, posY, speed));
+                }
+
+                // Handle pause
+                if (IsKeyPressed(KEY_P)) {
+                    gameStateManager.setCurrentState(GameState::PAUSE);
+                }
+            }
+            
+            // Drawing
+            BeginDrawing();
+            ClearBackground(RAYWHITE);
+            bg.Draw();
+            
+            // Draw all entities
+            for (auto& meteor : meteors) meteor.Draw();
+            for (auto& enemy : complexEnemies) enemy.Draw();
+            for (auto& bullet : bullets) bullet.Draw();
+            for (auto& bullet : enemyBullets) bullet.Draw();
+            player.Draw();
+            
+            // Draw UI
+            // Display score
+            std::string scoreText = "SCORE: " + std::to_string(playerData.getScore());
+            DrawText(scoreText.c_str(), 10, 50, 20, WHITE);
+            
+            // Display player name
+            DrawText(playerData.getPlayerName().c_str(), 10, 80, 20, WHITE);
+            
+            // Display health
+            for (int i = 0; i < player.GetHealth(); i++) {
+                DrawTexture(healthTexture, 10 + i * (healthTexture.width + 5), 10, WHITE);
+            }
+            
+            EndDrawing();
+            
+            if (gameOver) {
+                gameStateManager.setCurrentState(GameState::GAME_OVER);
+            }
+        }  // Add closing brace here
+        break;
+
+        case GameState::SCOREBOARD:
+        {
             BeginDrawing();
             ClearBackground(BLACK);
+            
+            DrawText("HIGH SCORES", WIDTH / 2 - MeasureText("HIGH SCORES", 40) / 2, 60, 40, GREEN);
+            
+            const std::vector<PlayerScore>& scores = scoreboard.getScores();
+            
+            if (scores.empty()) {
+                DrawText("No scores yet!", WIDTH / 2 - MeasureText("No scores yet!", 30) / 2, HEIGHT / 2, 30, WHITE);
+            } else {
+                // Header
+                DrawText("RANK", 100, 150, 20, GRAY);
+                DrawText("NAME", 200, 150, 20, GRAY);
+                DrawText("SCORE", 500, 150, 20, GRAY);
+                DrawText("DIFFICULTY", 650, 150, 20, GRAY);
+                
+                // Draw scores
+                for (size_t i = 0; i < scores.size(); i++) {
+                    // Rank
+                    std::string rank = std::to_string(i + 1) + ".";
+                    DrawText(rank.c_str(), 100, 200 + i * 40, 20, WHITE);
+                    
+                    // Name
+                    DrawText(scores[i].name.c_str(), 200, 200 + i * 40, 20, WHITE);
+                    
+                    // Score
+                    std::string score = std::to_string(scores[i].score);
+                    DrawText(score.c_str(), 500, 200 + i * 40, 20, WHITE);
+                    
+                    // Difficulty
+                    std::string diff;
+                    switch (scores[i].difficulty) {
+                        case Difficulty::EASY:
+                            diff = "EASY";
+                            break;
+                        case Difficulty::MEDIUM:
+                            diff = "MEDIUM";
+                            break;
+                        case Difficulty::HARD:
+                            diff = "HARD";
+                            break;
+                    }
+                    DrawText(diff.c_str(), 650, 200 + i * 40, 20, WHITE);
+                }
+            }
+            
+            DrawText("Press BACKSPACE to return", WIDTH / 2 - MeasureText("Press BACKSPACE to return", 20) / 2, HEIGHT - 50, 20, GRAY);
+            
+            EndDrawing();
+            
+            if (IsKeyPressed(KEY_BACKSPACE)) {
+                gameStateManager.setCurrentState(GameState::MAIN_MENU);
+            }
+        }
+        break;
+
+        case GameState::PAUSE:
+        {
+            BeginDrawing();
+            ClearBackground(BLACK);
+            
+            DrawText("PAUSED", WIDTH / 2 - MeasureText("PAUSED", 40) / 2, HEIGHT / 3, 40, WHITE);
+            
+            // Draw pause menu options
+            for (int i = 0; i < numPauseOptions; i++) {
+                Color optionColor = (i == selectedPauseOption) ? GREEN : GRAY;
+                DrawText(pauseOptions[i], WIDTH / 2 - MeasureText(pauseOptions[i], 30) / 2, HEIGHT / 2 + i * 60, 30, optionColor);
+            }
+            
+            // Navigation
+            if (IsKeyPressed(KEY_UP)) {
+                selectedPauseOption = (selectedPauseOption > 0) ? selectedPauseOption - 1 : numPauseOptions - 1;
+            }
+            if (IsKeyPressed(KEY_DOWN)) {
+                selectedPauseOption = (selectedPauseOption + 1) % numPauseOptions;
+            }
+            
+            // Selection
+            if (IsKeyPressed(KEY_ENTER)) {
+                switch (selectedPauseOption) {
+                    case 0: // Resume
+                        // Return to the previous game state
+                        if (gameStateManager.getCurrentState() == GameState::PAUSE) {
+                            gameStateManager.setCurrentState(GameState::INFINITE_MODE);
+                        }
+                        break;
+                    case 1: // Quit to menu
+                        // Save score if in infinite mode
+                        if (gameStateManager.getCurrentState() == GameState::PAUSE) {
+                            scoreboard.addScore(PlayerScore(playerData.getPlayerName(), playerData.getScore(), playerData.getDifficulty()));
+                            scoreboard.saveScores();
+                        }
+                        gameStateManager.setCurrentState(GameState::MAIN_MENU);
+                        break;
+                }
+            }
+            
+            // Also resume with Escape key
+            if (IsKeyPressed(KEY_P)) {
+                gameStateManager.setCurrentState(GameState::INFINITE_MODE);
+            }
+            
+            EndDrawing();
+        }
+        break;
+
+        case GameState::GAME_OVER:
+        {
+            // First, save the score if player was in infinite mode
+            if (gameStateManager.getPreviousState() == GameState::INFINITE_MODE) {
+                scoreboard.addScore(PlayerScore(playerData.getPlayerName(), playerData.getScore(), playerData.getDifficulty()));
+                scoreboard.saveScores();
+            }
+            
+            BeginDrawing();
+            ClearBackground(BLACK);
+            
+            // Centered Game Over text
             DrawText("Game Over", WIDTH / 2 - MeasureText("Game Over", 40) / 2, HEIGHT / 2 - 20, 40, RED);
-            DrawText("Press R to Restart", WIDTH / 2 - MeasureText("Press R to Restart", 20) / 2, HEIGHT / 2 + 40, 20, WHITE);
+            
+            // Centered restart message - fix the MeasureText parameter to match the actual string
+            const char* restartMsg = "Press BACKSPACE to Restart";
+            DrawText(restartMsg, WIDTH / 2 - MeasureText(restartMsg, 20) / 2, HEIGHT / 2 + 40, 20, WHITE);
+            
             EndDrawing();
             bullets.clear();
             enemies.clear();
@@ -524,15 +1082,17 @@ int main() {
             enemyBullets.clear();
             meteors.clear();
 
-            if (IsKeyPressed(KEY_R)) {
+            if (IsKeyPressed(KEY_BACKSPACE)) {
                 gameOver = false;
                 player.SetHealth(3);
                 newLevel = true;
                 gameStateManager.setCurrentState(GameState::MAIN_MENU);
             }
-            break;
+        }
+        break;
 
         case GameState::WIN:
+        {
             BeginDrawing();
             ClearBackground(BLACK);
             DrawText("WIN", WIDTH / 2 - MeasureText("WIN", 40) / 2, HEIGHT / 2 - 20, 40, GREEN);
@@ -550,7 +1110,15 @@ int main() {
                 newLevel = true;
                 gameStateManager.setCurrentState(GameState::MAIN_MENU);
             }
-            break;
+        }
+        break;
+
+        case GameState::EXIT:
+        {
+            CloseWindow();
+            return 0;
+        }
+        break;
         }
 
     }
