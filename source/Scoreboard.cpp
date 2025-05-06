@@ -15,7 +15,7 @@ void Scoreboard::loadScores() {
     std::ifstream file(SCORE_FILE, std::ios::binary);
     
     if (!file.is_open()) {
-        return; // File doesn't exist, start with empty scores
+        return;
     }
     
     try {
@@ -26,18 +26,15 @@ void Scoreboard::loadScores() {
         for (size_t i = 0; i < size && i < MAX_SCORES; i++) {
             PlayerScore score;
             
-            // Read name length
             size_t nameLength;
             file.read(reinterpret_cast<char*>(&nameLength), sizeof(size_t));
             
-            // Read name
             char* nameBuffer = new char[nameLength + 1];
             file.read(nameBuffer, nameLength);
             nameBuffer[nameLength] = '\0';
             score.name = nameBuffer;
             delete[] nameBuffer;
             
-            // Read score and difficulty
             file.read(reinterpret_cast<char*>(&score.score), sizeof(int));
             file.read(reinterpret_cast<char*>(&score.difficulty), sizeof(Difficulty));
             
@@ -65,14 +62,9 @@ void Scoreboard::saveScores() {
         file.write(reinterpret_cast<const char*>(&size), sizeof(size_t));
         
         for (const auto& score : scores) {
-            // Write name length
             size_t nameLength = score.name.length();
             file.write(reinterpret_cast<const char*>(&nameLength), sizeof(size_t));
-            
-            // Write name
             file.write(score.name.c_str(), nameLength);
-            
-            // Write score and difficulty
             file.write(reinterpret_cast<const char*>(&score.score), sizeof(int));
             file.write(reinterpret_cast<const char*>(&score.difficulty), sizeof(Difficulty));
         }
@@ -85,30 +77,23 @@ void Scoreboard::saveScores() {
 }
 
 bool Scoreboard::addScore(const PlayerScore& score) {
-    // Check if this exact same score already exists
     for (const auto& existingScore : scores) {
-        // If there's already an identical entry, don't add a duplicate
         if (existingScore.name == score.name && 
             existingScore.score == score.score && 
             existingScore.difficulty == score.difficulty) {
-            return false; // Score already exists, don't add it again
+            return false;
         }
     }
-    
-    // No duplicate found, add the new score
     scores.push_back(score);
-    
-    // Sort scores in descending order
     std::sort(scores.begin(), scores.end(), [](const PlayerScore& a, const PlayerScore& b) {
         return a.score > b.score;
     });
     
-    // Keep only top MAX_SCORES
     if (scores.size() > MAX_SCORES) {
         scores.resize(MAX_SCORES);
     }
     
-    return true; // Score was added
+    return true;
 }
 
 const std::vector<PlayerScore>& Scoreboard::getScores() const {
