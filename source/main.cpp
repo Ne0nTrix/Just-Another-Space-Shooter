@@ -966,7 +966,6 @@ int main() {
                     case 1:
                         if (gameStateManager.getCurrentState() == GameState::PAUSE) {
                             scoreboard.addScore(PlayerScore(playerData.getPlayerName(), playerData.getScore(), playerData.getDifficulty()));
-                            scoreboard.saveScores();
                         }
                         gameStateManager.setCurrentState(GameState::MAIN_MENU);
                         break;
@@ -985,7 +984,6 @@ int main() {
         {
             if (gameStateManager.getPreviousState() == GameState::INFINITE_MODE) {
                 scoreboard.addScore(PlayerScore(playerData.getPlayerName(), playerData.getScore(), playerData.getDifficulty()));
-                scoreboard.saveScores();
             }
             
             BeginDrawing();

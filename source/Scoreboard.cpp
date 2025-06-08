@@ -1,79 +1,112 @@
 #include "Scoreboard.h"
-#include <fstream>
-#include <algorithm>
 #include <iostream>
+#include <algorithm>
+#include <mysql/mysql.h>
 
 Scoreboard::Scoreboard() {
-    loadScores();
+    connection = nullptr;
+    
+    // Try to initialize MySQL
+    try {
+        if (connectToDatabase()) {
+            // Create table if it doesn't exist
+            const char* createTableQuery = 
+                "CREATE TABLE IF NOT EXISTS highscores ("
+                "id INT AUTO_INCREMENT PRIMARY KEY,"
+                "player_name VARCHAR(50) NOT NULL,"
+                "score INT NOT NULL,"
+                "difficulty ENUM('EASY', 'MEDIUM', 'HARD') NOT NULL,"
+                "date_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+                ")";
+                
+            mysql_query(static_cast<MYSQL*>(connection), createTableQuery);
+            loadScores();
+        }
+    }
+    catch (...) {
+        std::cerr << "Exception during MySQL initialization." << std::endl;
+    }
 }
 
 Scoreboard::~Scoreboard() {
-    saveScores();
+    closeConnection();
+    mysql_library_end();
+}
+
+bool Scoreboard::connectToDatabase() {
+    try {
+        if (connection != nullptr) {
+            closeConnection();
+        }
+        
+        MYSQL* conn = mysql_init(NULL);
+        if (conn == nullptr) {
+            return false;
+        }
+        
+        unsigned int timeout = 5;
+        mysql_options(conn, MYSQL_OPT_CONNECT_TIMEOUT, &timeout);
+        
+        if (!mysql_real_connect(conn, DB_HOST.c_str(), DB_USER.c_str(), 
+                              DB_PASS.c_str(), DB_NAME.c_str(), DB_PORT, NULL, 0)) {
+            std::cerr << "MySQL connection failed: " << mysql_error(conn) << std::endl;
+            mysql_close(conn);
+            return false;
+        }
+        
+        connection = static_cast<void*>(conn);
+        return true;
+    }
+    catch (...) {
+        return false;
+    }
+}
+
+void Scoreboard::closeConnection() {
+    if (connection) {
+        mysql_close(static_cast<MYSQL*>(connection));
+        connection = nullptr;
+    }
 }
 
 void Scoreboard::loadScores() {
-    std::ifstream file(SCORE_FILE, std::ios::binary);
-    
-    if (!file.is_open()) {
-        return;
-    }
+    scores.clear();
     
     try {
-        size_t size;
-        file.read(reinterpret_cast<char*>(&size), sizeof(size_t));
+        MYSQL* conn = static_cast<MYSQL*>(connection);
+        const char* query = "SELECT player_name, score, difficulty FROM highscores ORDER BY score DESC LIMIT 10";
         
-        scores.clear();
-        for (size_t i = 0; i < size && i < MAX_SCORES; i++) {
-            PlayerScore score;
-            
-            size_t nameLength;
-            file.read(reinterpret_cast<char*>(&nameLength), sizeof(size_t));
-            
-            char* nameBuffer = new char[nameLength + 1];
-            file.read(nameBuffer, nameLength);
-            nameBuffer[nameLength] = '\0';
-            score.name = nameBuffer;
-            delete[] nameBuffer;
-            
-            file.read(reinterpret_cast<char*>(&score.score), sizeof(int));
-            file.read(reinterpret_cast<char*>(&score.difficulty), sizeof(Difficulty));
-            
-            scores.push_back(score);
+        if (mysql_query(conn, query) != 0) {
+            std::cerr << "Query failed: " << mysql_error(conn) << std::endl;
+            return;
         }
-    }
-    catch (const std::exception& e) {
-        std::cerr << "Error loading scores: " << e.what() << std::endl;
-        scores.clear();
-    }
-    
-    file.close();
-}
-
-void Scoreboard::saveScores() {
-    std::ofstream file(SCORE_FILE, std::ios::binary | std::ios::trunc);
-    
-    if (!file.is_open()) {
-        std::cerr << "Error: Could not open file for saving scores." << std::endl;
-        return;
-    }
-    
-    try {
-        size_t size = scores.size();
-        file.write(reinterpret_cast<const char*>(&size), sizeof(size_t));
         
-        for (const auto& score : scores) {
-            size_t nameLength = score.name.length();
-            file.write(reinterpret_cast<const char*>(&nameLength), sizeof(size_t));
-            file.write(score.name.c_str(), nameLength);
-            file.write(reinterpret_cast<const char*>(&score.score), sizeof(int));
-            file.write(reinterpret_cast<const char*>(&score.difficulty), sizeof(Difficulty));
+        MYSQL_RES* result = mysql_store_result(conn);
+        if (result == nullptr) {
+            std::cerr << "Failed to store result: " << mysql_error(conn) << std::endl;
+            return;
         }
+        
+        MYSQL_ROW row;
+        while ((row = mysql_fetch_row(result))) {
+            std::string name = row[0];
+            int score = std::stoi(row[1]);
+            std::string diffStr = row[2];
+            
+            Difficulty diff;
+            if (diffStr == "EASY") diff = Difficulty::EASY;
+            else if (diffStr == "MEDIUM") diff = Difficulty::MEDIUM;
+            else diff = Difficulty::HARD;
+            
+            scores.emplace_back(name, score, diff);
+        }
+        
+        mysql_free_result(result);
+        std::cout << "Loaded " << scores.size() << " scores from database" << std::endl;
     }
-    catch (const std::exception& e) {
-        std::cerr << "Error saving scores: " << e.what() << std::endl;
+    catch (...) {
+        std::cerr << "Exception in loadScores." << std::endl;
     }
-    
-    file.close();
 }
 
 bool Scoreboard::addScore(const PlayerScore& score) {
@@ -84,7 +117,9 @@ bool Scoreboard::addScore(const PlayerScore& score) {
             return false;
         }
     }
+    
     scores.push_back(score);
+    
     std::sort(scores.begin(), scores.end(), [](const PlayerScore& a, const PlayerScore& b) {
         return a.score > b.score;
     });
@@ -92,6 +127,42 @@ bool Scoreboard::addScore(const PlayerScore& score) {
     if (scores.size() > MAX_SCORES) {
         scores.resize(MAX_SCORES);
     }
+    
+    bool dbSuccess = false;
+    
+    if (connection != nullptr) {
+        try {
+            MYSQL* conn = static_cast<MYSQL*>(connection);
+            
+            const char* diffStr;
+            switch (score.difficulty) {
+                case Difficulty::EASY: diffStr = "EASY"; break;
+                case Difficulty::MEDIUM: diffStr = "MEDIUM"; break;
+                case Difficulty::HARD: diffStr = "HARD"; break;
+                default: diffStr = "MEDIUM"; break;
+            }
+            
+            char escapedName[101];
+            mysql_real_escape_string(conn, escapedName, score.name.c_str(), 
+                                  static_cast<unsigned long>(score.name.length()));
+            
+            char query[256];
+            snprintf(query, sizeof(query), 
+                   "INSERT INTO highscores (player_name, score, difficulty) VALUES ('%s', %d, '%s')",
+                   escapedName, score.score, diffStr);
+            
+            if (mysql_query(conn, query) == 0) {
+                dbSuccess = true;
+                std::cout << "Score saved to database successfully" << std::endl;
+            } else {
+                std::cerr << "Failed to save to database: " << mysql_error(conn) << std::endl;
+            }
+        }
+        catch (...) {
+            std::cerr << "Exception while saving to database" << std::endl;
+        }
+    }
+    
     
     return true;
 }
@@ -102,4 +173,18 @@ const std::vector<PlayerScore>& Scoreboard::getScores() const {
 
 void Scoreboard::clearScores() {
     scores.clear();
+    
+    if (connection != nullptr) {
+        try {
+            MYSQL* conn = static_cast<MYSQL*>(connection);
+            const char* query = "TRUNCATE TABLE highscores";
+            if (mysql_query(conn, query) != 0) {
+                std::cerr << "Failed to clear database: " << mysql_error(conn) << std::endl;
+            }
+        }
+        catch (...) {
+            std::cerr << "Exception while clearing database" << std::endl;
+        }
+    }
+    
 }
