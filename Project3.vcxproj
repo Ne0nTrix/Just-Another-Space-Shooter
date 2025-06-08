@@ -152,6 +152,7 @@
     <ClCompile Include="source\Player.cpp" />
     <ClCompile Include="source\PlayerData.cpp" />
     <ClCompile Include="source\Scoreboard.cpp" />
+    <ClCompile Include="source\WebServer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\Background.h" />
@@ -165,6 +166,7 @@
     <ClInclude Include="headers\Player.h" />
     <ClInclude Include="headers\PlayerData.h" />
     <ClInclude Include="headers\Scoreboard.h" />
+    <ClInclude Include="headers\WebServer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
