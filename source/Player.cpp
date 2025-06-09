@@ -6,7 +6,7 @@
 Player::Player(Texture* texture, float posx, float posy, float speed)
 : Entity(texture, posx, posy, 32), speed(speed), shootCooldown(0.5f), currentCooldown(0.0f), rotation(0.0f) {}
 
-void Player::Event(std::vector<Bullet>& bullets, Texture* bulletTexture, float bulletSpeed)
+void Player::Event(std::vector<Bullet>& bullets, Texture* bulletTexture, float bulletSpeed, Sound* shootSound)
 {
     // Use modified speed
     float currentSpeed = GetCurrentSpeed();
@@ -27,6 +27,11 @@ void Player::Event(std::vector<Bullet>& bullets, Texture* bulletTexture, float b
             Shoot(bullets, bulletTexture, bulletSpeed);
         }
         currentCooldown = GetCurrentShootCooldown();
+        
+        // Play shooting sound
+        if (shootSound != nullptr) {
+            PlaySound(*shootSound);
+        }
     }
     RotateTowards(GetMousePosition());
 }

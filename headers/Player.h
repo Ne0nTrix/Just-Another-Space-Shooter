@@ -8,7 +8,7 @@ class Player : public Entity
 {
 public:
     Player(Texture* texture, float posx, float posy, float speed);
-    void Event(std::vector<Bullet>& bullets, Texture* bulletTexture, float bulletSpeed);
+    void Event(std::vector<Bullet>& bullets, Texture* bulletTexture, float bulletSpeed, Sound* shootSound = nullptr); // Add sound parameter
     void Draw() const override;
     void Update() override;
     void RotateTowards(Vector2 target);

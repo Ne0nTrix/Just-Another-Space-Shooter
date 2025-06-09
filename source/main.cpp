@@ -117,6 +117,7 @@ int main() {
 
     InitWindow(WIDTH, HEIGHT, "Just Another Space Invaders");
     SetTargetFPS(60);
+    InitAudioDevice();
 
     GameStateManager gameStateManager(GameState::MAIN_MENU);
 
@@ -130,6 +131,24 @@ int main() {
     Texture enemyBulletTexture = LoadTexture("assets/enemy_bullet_texture.png");
     Texture healthTexture = LoadTexture("assets/health1_texture.png");
     Texture upgradeTexture = LoadTexture("assets/upgrade_texture.png"); // You'll need to create this
+
+    Sound backgroundMusic = LoadSound("assets/music/background.wav");
+    Sound blipSelectSound = LoadSound("assets/music/blipSelect.wav");
+    Sound hitEnemySound = LoadSound("assets/music/hitEnemy.wav");
+    Sound hitHurtSound = LoadSound("assets/music/hitHurt.wav");
+    Sound laserShootSound = LoadSound("assets/music/laserShoot.wav");
+    Sound powerUpSound = LoadSound("assets/music/powerUp.wav");
+    Sound enemyShootSound = LoadSound("assets/music/laserShootEnemy.wav");
+
+    SetSoundVolume(backgroundMusic, 0.6f);
+    SetSoundVolume(blipSelectSound, 0.7f);
+    SetSoundVolume(hitEnemySound, 0.6f);
+    SetSoundVolume(hitHurtSound, 0.8f);
+    SetSoundVolume(laserShootSound, 0.5f);
+    SetSoundVolume(powerUpSound, 0.7f);
+    
+    PlaySound(backgroundMusic);
+    bool musicPlaying = true;
 
     Background bg(&backgroundTex, 0, 0, 50.0f);
     Player player(&shipTexture, initialPosX, initialPosY, 200.0f);
@@ -179,6 +198,10 @@ int main() {
         float deltaTime = GetFrameTime();
         gameTimeElapsed += deltaTime;
 
+        if (musicPlaying && !IsSoundPlaying(backgroundMusic)) {
+        PlaySound(backgroundMusic);
+        }
+
         switch (gameStateManager.getCurrentState()) {
 
         case GameState::MAIN_MENU:
@@ -195,12 +218,15 @@ int main() {
 
             if (IsKeyPressed(KEY_UP)) {
                 selectedOption = (selectedOption > 0) ? selectedOption - 1 : numOptions - 1;
+                PlaySound(blipSelectSound);
             }
             if (IsKeyPressed(KEY_DOWN)) {
                 selectedOption = (selectedOption + 1) % numOptions;
+                PlaySound(blipSelectSound);
             }
 
             if (IsKeyPressed(KEY_ENTER)) {
+                PlaySound(blipSelectSound);
                 switch (selectedOption) {
                 case 0:
                     gameStateManager.setCurrentState(GameState::MODE_SELECTION);
@@ -232,12 +258,15 @@ int main() {
 
             if (IsKeyPressed(KEY_UP)) {
                 selectedMode = (selectedMode > 0) ? selectedMode - 1 : numModeOptions - 1;
+                PlaySound(blipSelectSound);
             }
             if (IsKeyPressed(KEY_DOWN)) {
                 selectedMode = (selectedMode + 1) % numModeOptions;
+                PlaySound(blipSelectSound);
             }
 
             if (IsKeyPressed(KEY_ENTER)) {
+                PlaySound(blipSelectSound);
                 switch (selectedMode) {
                 case 0:
                     gameStateManager.setCurrentState(GameState::CLASSIC_LEVEL_1);
@@ -270,12 +299,14 @@ int main() {
             while (key > 0) {
                 if ((key >= 32) && (key <= 125) && (inputName.length() < MAX_NAME_LENGTH)) {
                     inputName += (char)key;
+                    PlaySound(blipSelectSound);
                 }
                 key = GetCharPressed();
             }
             
             if (IsKeyPressed(KEY_BACKSPACE) && !inputName.empty()) {
                 inputName.pop_back();
+                PlaySound(hitHurtSound);
             }
             
             BeginDrawing();
@@ -322,12 +353,15 @@ int main() {
             
             if (IsKeyPressed(KEY_UP)) {
                 selectedDiff = (selectedDiff > 0) ? selectedDiff - 1 : numDiffOptions - 1;
+                PlaySound(blipSelectSound);
             }
             if (IsKeyPressed(KEY_DOWN)) {
                 selectedDiff = (selectedDiff + 1) % numDiffOptions;
+                PlaySound(blipSelectSound);
             }
             
             if (IsKeyPressed(KEY_ENTER)) {
+                PlaySound(blipSelectSound);
                 switch (selectedDiff) {
                     case 0:
                         playerData.setDifficulty(Difficulty::EASY);
@@ -397,6 +431,7 @@ int main() {
                             CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
                                 { meteor.posx + meteor.size / 2.0f, meteor.posy + meteor.size / 2.0f }, meteor.size / 2.0f)) {
                             meteor.isActive = false;
+                            PlaySound(hitEnemySound); // Add this line
                             
                             if (!bullet.isPiercing) {
                                 bullet.isActive = false;
@@ -416,6 +451,7 @@ int main() {
                             CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
                                 { enemy.posx, enemy.posy }, enemy.size / 2.0f)) {
                             enemy.isActive = false;
+                            PlaySound(hitEnemySound); // Add this line
                             
                             if (!bullet.isPiercing) {
                                 bullet.isActive = false;
@@ -430,7 +466,7 @@ int main() {
                     }
                 }
 
-                player.Event(bullets, &bulletTexture, 300.0f);
+                player.Event(bullets, &bulletTexture, 300.0f, &laserShootSound);
                 player.Update();
                 bg.Update();
                 for (auto& bullet : bullets) {
@@ -544,6 +580,7 @@ int main() {
                             CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
                                 { meteor.posx + meteor.size / 2.0f, meteor.posy + meteor.size / 2.0f }, meteor.size / 2.0f)) {
                             meteor.isActive = false;
+                            PlaySound(hitEnemySound); // Add this line
                             
                             if (!bullet.isPiercing) {
                                 bullet.isActive = false;
@@ -563,6 +600,7 @@ int main() {
                             CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
                                 { enemy.posx, enemy.posy }, enemy.size / 2.0f)) {
                             enemy.isActive = false;
+                            PlaySound(hitEnemySound); // Add this line
                             
                             if (!bullet.isPiercing) {
                                 bullet.isActive = false;
@@ -611,7 +649,7 @@ int main() {
                     newLevel = true;
                 }
 
-                player.Event(bullets, &bulletTexture, 300.0f);
+                player.Event(bullets, &bulletTexture, 300.0f, &laserShootSound);
                 player.Update();
                 bg.Update();
                 for (auto& bullet : bullets) {
@@ -732,6 +770,7 @@ int main() {
                                 CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
                                     { meteor.posx + meteor.size / 2.0f, meteor.posy + meteor.size / 2.0f }, meteor.size / 2.0f)) {
                                 meteor.isActive = false;
+                                PlaySound(hitEnemySound); // Add this line
                                 
                                 if (!bullet.isPiercing) {
                                     bullet.isActive = false;
@@ -751,6 +790,7 @@ int main() {
                                 CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
                                     { enemy.posx, enemy.posy }, enemy.size / 2.0f)) {
                                 enemy.isActive = false;
+                                PlaySound(hitEnemySound); // Add this line
                                 
                                 if (!bullet.isPiercing) {
                                     bullet.isActive = false;
@@ -778,7 +818,7 @@ int main() {
                     if (complexEnemies.empty()) {
                         gameStateManager.setCurrentState(GameState::WIN);
                     }
-                    player.Event(bullets, &bulletTexture, 300.0f);
+                    player.Event(bullets, &bulletTexture, 300.0f, &laserShootSound);
                     player.Update();
                     bg.Update();
                     for (auto& bullet : bullets) {
@@ -905,6 +945,7 @@ int main() {
                         Vector2 bulletDirection = { cos((enemy.rotation + 90) * DEG2RAD), sin((enemy.rotation + 90) * DEG2RAD) };
                         Bullet newBullet(&enemyBulletTexture, enemy.posx + enemy.size / 2.0f, enemy.posy + enemy.size / 2.0f, 4, bulletDirection, 350.0f);
                         enemyBullets.push_back(newBullet);
+                        PlaySound(enemyShootSound);
                     }
                 }
             }
@@ -930,6 +971,7 @@ int main() {
                             CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
                                 { meteor.posx + meteor.size / 2.0f, meteor.posy + meteor.size / 2.0f }, meteor.size / 2.0f)) {
                             meteor.isActive = false;
+                            PlaySound(hitEnemySound); // Add this line
                             
                             if (!bullet.isPiercing) {
                                 bullet.isActive = false;
@@ -949,6 +991,7 @@ int main() {
                             CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
                                 { enemy.posx, enemy.posy }, enemy.size / 2.0f)) {
                             enemy.isActive = false;
+                            PlaySound(hitEnemySound); // Add this line
                             
                             if (!bullet.isPiercing) {
                                 bullet.isActive = false;
@@ -970,6 +1013,7 @@ int main() {
                         { player.posx, player.posy }, player.size / 2.0f)) {
                         bullet.isActive = false;
                         player.SetHealth(player.GetHealth() - 1);
+                        PlaySound(hitHurtSound);
                     }
                 }
 
@@ -979,6 +1023,7 @@ int main() {
                         { meteor.posx + meteor.size / 2.0f, meteor.posy + meteor.size / 2.0f }, meteor.size / 2.0f)) {
                         meteor.isActive = false;
                         player.SetHealth(player.GetHealth() - 1);
+                        PlaySound(hitHurtSound); // Add this line
                     }
                 }
 
@@ -988,6 +1033,7 @@ int main() {
                         { enemy.posx, enemy.posy }, enemy.size / 2.0f)) {
                         enemy.isActive = false;
                         player.SetHealth(player.GetHealth() - 1);
+                        PlaySound(hitHurtSound); // Add this line
                     }
                 }
 
@@ -1007,6 +1053,7 @@ int main() {
                         { upgrade.posx + upgrade.size / 2.0f, upgrade.posy + upgrade.size / 2.0f }, upgrade.size / 2.0f)) {
                         upgrade.isActive = false;
                         player.ApplyUpgrade((int)upgrade.type);
+                        PlaySound(powerUpSound);
                         
                         // Add visual/audio feedback here
                         std::cout << "Upgrade picked up!" << std::endl;
@@ -1039,7 +1086,7 @@ int main() {
                     gameOver = true;
                 }
 
-                player.Event(bullets, &bulletTexture, 300.0f);
+                player.Event(bullets, &bulletTexture, 300.0f, &laserShootSound);
                 player.Update();
                 bg.Update();
 
@@ -1219,12 +1266,15 @@ int main() {
             
             if (IsKeyPressed(KEY_UP)) {
                 selectedPauseOption = (selectedPauseOption > 0) ? selectedPauseOption - 1 : numPauseOptions - 1;
+                PlaySound(blipSelectSound);
             }
             if (IsKeyPressed(KEY_DOWN)) {
                 selectedPauseOption = (selectedPauseOption + 1) % numPauseOptions;
+                PlaySound(blipSelectSound);
             }
             
             if (IsKeyPressed(KEY_ENTER)) {
+                PlaySound(blipSelectSound);
                 switch (selectedPauseOption) {
                     case 0:
                         if (gameStateManager.getCurrentState() == GameState::PAUSE) {
@@ -1320,6 +1370,15 @@ int main() {
     UnloadTexture(enemyBulletTexture);
     UnloadTexture(healthTexture);
     UnloadTexture(upgradeTexture);
+    UnloadSound(backgroundMusic);
+    UnloadSound(blipSelectSound);
+    UnloadSound(hitEnemySound);
+    UnloadSound(hitHurtSound);
+    UnloadSound(laserShootSound);
+    UnloadSound(powerUpSound);
+    UnloadSound(enemyShootSound);
+
+    CloseAudioDevice();
     CloseWindow();
     return 0;
 }
