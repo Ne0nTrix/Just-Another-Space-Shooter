@@ -148,6 +148,8 @@
     <ClCompile Include="source\Enemy.cpp" />
     <ClCompile Include="source\Entity.cpp" />
     <ClCompile Include="source\GameStateManager.cpp" />
+    <ClCompile Include="source\HeavyEnemy.cpp" />
+    <ClCompile Include="source\LaserTurret.cpp" />
     <ClCompile Include="source\main.cpp" />
     <ClCompile Include="source\Obstacle.cpp" />
     <ClCompile Include="source\Player.cpp" />
@@ -164,6 +166,8 @@
     <ClInclude Include="headers\Entity.h" />
     <ClInclude Include="headers\GameState.h" />
     <ClInclude Include="headers\GameStateManager.h" />
+    <ClInclude Include="headers\HeavyEnemy.h" />
+    <ClInclude Include="headers\LaserTurret.h" />
     <ClInclude Include="headers\Obstacle.h" />
     <ClInclude Include="headers\Player.h" />
     <ClInclude Include="headers\PlayerData.h" />

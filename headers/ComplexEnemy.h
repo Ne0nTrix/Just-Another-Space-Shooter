@@ -9,7 +9,7 @@ public:
     
     ComplexEnemy(Texture* tex, float x, float y, float spd);
 
-    void Update(const std::vector<ComplexEnemy>& allEnemies);
+    void virtual Update(const std::vector<ComplexEnemy>& allEnemies);
     void Draw() const override;
     void SetPlayerPosition(Vector2 playerPos);
     bool CanShoot(float deltaTime);

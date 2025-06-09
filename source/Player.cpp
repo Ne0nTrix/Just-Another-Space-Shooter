@@ -4,7 +4,9 @@
 #include <vector>
 
 Player::Player(Texture* texture, float posx, float posy, float speed)
-: Entity(texture, posx, posy, 32), speed(speed), shootCooldown(0.5f), currentCooldown(0.0f), rotation(0.0f) {}
+: Entity(texture, posx, posy, 32), speed(speed), shootCooldown(0.5f), currentCooldown(0.0f), rotation(0.0f) {
+    health = maxHealth; // Start with full health (5)
+}
 
 void Player::Event(std::vector<Bullet>& bullets, Texture* bulletTexture, float bulletSpeed, Sound* shootSound)
 {

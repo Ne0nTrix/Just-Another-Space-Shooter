@@ -8,6 +8,8 @@
 #include "PlayerData.h"
 #include "Scoreboard.h"
 #include "Upgrade.h"
+#include "LaserTurret.h"
+#include "HeavyEnemy.h"
 #include <vector>
 #include <iostream>
 #include <string>
@@ -62,7 +64,7 @@ void CreateMeteor(std::vector<Obstacle>& meteors, Texture* smallTexture, Texture
 
 void ResetGameState(Player& player, std::vector<Bullet>& bullets, std::vector<Enemy>& enemies, 
                    std::vector<ComplexEnemy>& complexEnemies, std::vector<Bullet>& enemyBullets,
-                   std::vector<Obstacle>& meteors, std::vector<Upgrade>& upgrades,
+                   std::vector<Obstacle>& meteors, std::vector<Upgrade>& upgrades, std::vector<LaserTurret>& laserTurrets, std::vector<HeavyEnemy>& heavyEnemies,
                    PlayerData& playerData, float initialPosX, float initialPosY) {
     // Clear all vectors
     bullets.clear();
@@ -71,10 +73,12 @@ void ResetGameState(Player& player, std::vector<Bullet>& bullets, std::vector<En
     enemyBullets.clear();
     meteors.clear();
     upgrades.clear();
+    laserTurrets.clear(); // Add this line
+    heavyEnemies.clear(); // Add this line
     
     // Reset player
     player.ResetAllUpgrades();
-    player.SetHealth(3);
+    player.SetHealth(5);
     player.posx = initialPosX;
     player.posy = initialPosY;
     
@@ -131,7 +135,8 @@ int main() {
     Texture enemyBulletTexture = LoadTexture("assets/enemy_bullet_texture.png");
     Texture healthTexture = LoadTexture("assets/health1_texture.png");
     Texture upgradeTexture = LoadTexture("assets/upgrade_texture.png"); // You'll need to create this
-
+    Texture laserTexture = LoadTexture("assets/laser_texture.png");
+    
     Sound backgroundMusic = LoadSound("assets/music/background.wav");
     Sound blipSelectSound = LoadSound("assets/music/blipSelect.wav");
     Sound hitEnemySound = LoadSound("assets/music/hitEnemy.wav");
@@ -158,6 +163,8 @@ int main() {
     std::vector<Bullet> enemyBullets;
     std::vector<ComplexEnemy> complexEnemies;
     std::vector<Upgrade> upgrades;
+    std::vector<LaserTurret> laserTurrets;
+    std::vector<HeavyEnemy> heavyEnemies;
 
     int destroyedMeteors = 0;
     int maxMeteors = 10;
@@ -862,36 +869,44 @@ int main() {
                 if (newLevel) {
                     player.posx = initialPosX;
                     player.posy = initialPosY;
-                    player.SetHealth(3);
+                    player.SetHealth(5);
                     meteors.clear();
                     enemies.clear();
                     complexEnemies.clear();
                     bullets.clear();
                     enemyBullets.clear();
+                    laserTurrets.clear();
+                    heavyEnemies.clear();  
                     
-                    int numEnemies, numMeteors;
+                    int numEnemies, numMeteors, numLaser, numHeavy;
                     float enemySpeed, meteorSpeed;
                     switch (playerData.getDifficulty()) {
                         case Difficulty::EASY:
+                            numEnemies = 2;
+                            maxEnemies = 2;
+                            numMeteors = 8;
+                            enemySpeed = 100.0f;
+                            meteorSpeed = 150.0f;
+                            numLaser = 1;
+                            numHeavy = 0;
+                            break;
+                        case Difficulty::MEDIUM:
                             numEnemies = 3;
                             maxEnemies = 3;
                             numMeteors = 10;
-                            enemySpeed = 100.0f;
-                            meteorSpeed = 150.0f;
-                            break;
-                        case Difficulty::MEDIUM:
-                            numEnemies = 5;
-                            maxEnemies = 5;
-                            numMeteors = 15;
                             enemySpeed = 150.0f;
                             meteorSpeed = 200.0f;
+                            numLaser = 2;
+                            numHeavy = 1;
                             break;
                         case Difficulty::HARD:
-                            numEnemies = 8;
-                            maxEnemies = 8;
-                            numMeteors = 20;
+                            numEnemies = 5;
+                            maxEnemies = 5;
+                            numMeteors = 12;
                             enemySpeed = 200.0f;
                             meteorSpeed = 250.0f;
+                            numLaser = 2;
+                            numHeavy = 2;
                             break;
                     }
                     
@@ -901,6 +916,18 @@ int main() {
                         complexEnemies.push_back(ComplexEnemy(&enemyTexture, posX, posY, enemySpeed));
                     }
                     
+                    for (int i = 0; i < numHeavy; i++) {
+                        float posX = GetRandomValue(WIDTH / 4, 3 * WIDTH / 4);
+                        float posY = GetRandomValue(50, HEIGHT / 4);
+                        heavyEnemies.emplace_back(&enemyTexture, posX, posY, enemySpeed);
+                    }
+                    if (numLaser >= 1) {
+                        laserTurrets.emplace_back(&laserTexture, 10, HEIGHT / 3, true);     // Left turret
+                    }
+                    if (numLaser >= 2) {
+                        laserTurrets.emplace_back(&laserTexture, WIDTH - 42, HEIGHT / 2, false);// Right turret
+                    }
+
                     maxMeteors = numMeteors;
                     while (meteors.size() < maxMeteors) {
                         CreateMeteor(meteors, &smallMeteorTexture, &mediumMeteorTexture, &largeMeteorTexture, 
@@ -909,7 +936,53 @@ int main() {
                     
                     newLevel = false;
                 }
-                    for (auto& meteor : meteors) {
+                
+                // Respawn destroyed turrets
+                int activeTurrets = 0;
+                for (auto& turret : laserTurrets) {
+                    if (turret.isActive) activeTurrets++;
+                }
+                
+                // Respawn turrets if they were destroyed
+                int expectedTurrets = 0;
+                switch (playerData.getDifficulty()) {
+                    case Difficulty::EASY: expectedTurrets = 1; break;
+                    case Difficulty::MEDIUM: expectedTurrets = 2; break;
+                    case Difficulty::HARD: expectedTurrets = 2; break;
+                }
+                
+                if (activeTurrets < expectedTurrets) {
+                    // Respawn missing turrets after a delay
+                    static float respawnTimer = 0.0f;
+                    respawnTimer += GetFrameTime();
+                    
+                    if (respawnTimer >= 10.0f) { // Respawn after 10 seconds
+                        // Check which turrets need respawning
+                        bool hasLeftTurret = false;
+                        bool hasRightTurret = false;
+                        
+                        for (auto& turret : laserTurrets) {
+                            if (turret.isActive) {
+                                if (turret.isLeftSide) hasLeftTurret = true;
+                                else hasRightTurret = true;
+                            }
+                        }
+                        
+                        // Respawn left turret if missing
+                        if (!hasLeftTurret && expectedTurrets >= 1) {
+                            laserTurrets.emplace_back(&laserTexture, 10, HEIGHT / 3, true);
+                        }
+                        
+                        // Respawn right turret if missing
+                        if (!hasRightTurret && expectedTurrets >= 2) {
+                            laserTurrets.emplace_back(&laserTexture, WIDTH - 58, HEIGHT / 2, false);
+                        }
+                        
+                        respawnTimer = 0.0f; // Reset timer
+                    }
+                }
+                
+                for (auto& meteor : meteors) {
                     // Apply slow effect if active
                         float originalSpeed = meteor.speed;
                         if (player.HasSlowEnemies()) {
@@ -921,10 +994,52 @@ int main() {
                         // Restore original speed after update
                         meteor.speed = originalSpeed;
                 }
+                for (auto& turret : laserTurrets) {
+                    turret.Update();
+                    if (turret.CanShoot(GetFrameTime())) {
+                        turret.StartLaser();
+                        //PlaySound(laserBeamSound);
+                    }
+                }
 
                 while (meteors.size() < maxMeteors) {
                     CreateMeteor(meteors, &smallMeteorTexture, &mediumMeteorTexture, &largeMeteorTexture, 
                                 GetRandomValue(0, 2), 0, 0, player.posx, player.posy, 200.0f);
+                }
+                std::vector<ComplexEnemy*> allEnemiesForUpdate;
+                for (auto& enemy : complexEnemies) {
+                    allEnemiesForUpdate.push_back(&enemy);
+                }
+                for (auto& enemy : heavyEnemies) {
+                    allEnemiesForUpdate.push_back(&enemy);
+                }
+                
+                for (auto& enemy : heavyEnemies) {
+                    if (!enemy.isActive) continue; // Skip inactive enemies
+                    
+                    enemy.SetPlayerPosition({ player.posx, player.posy });
+                    
+                    // Apply slow effect if active
+                    float originalSpeed = enemy.speed;
+                    if (player.HasSlowEnemies()) {
+                        enemy.speed *= 0.5f;
+                    }
+                    
+                    // Create a temporary vector for the Update call
+                    std::vector<ComplexEnemy> tempEnemies;
+                    for (auto& ce : complexEnemies) {
+                        if (ce.isActive) tempEnemies.push_back(ce);
+                    }
+                    
+                    enemy.Update(tempEnemies);
+                    enemy.speed = originalSpeed;
+                    
+                    if (enemy.isActive && enemy.CanShoot(GetFrameTime())) {
+                        Vector2 bulletDirection = { cos((enemy.rotation + 90) * DEG2RAD), sin((enemy.rotation + 90) * DEG2RAD) };
+                        Bullet newBullet(&enemyBulletTexture, enemy.posx + enemy.size / 2.0f, enemy.posy + enemy.size / 2.0f, 4, bulletDirection, 350.0f);
+                        enemyBullets.push_back(newBullet);
+                        PlaySound(enemyShootSound);
+                    }
                 }
                 for (auto& enemy : complexEnemies) {
                 enemy.SetPlayerPosition({ player.posx, player.posy });
@@ -962,6 +1077,79 @@ int main() {
                     enemyBullets.end());
 
                 // Check bullet collisions with meteors and enemies
+                for (auto& turret : laserTurrets) {
+    if (turret.isActive && turret.isShooting && !player.IsShielded()) {
+        Rectangle laserRect = turret.GetLaserRect();
+        Rectangle playerRect = {
+            player.posx - player.size/2,
+            player.posy - player.size/2,
+            player.size,
+            player.size
+        };
+        
+        if (CheckCollisionRecs(laserRect, playerRect)) {
+            player.SetHealth(player.GetHealth() - 1);
+            PlaySound(hitHurtSound);
+            // Stop the laser after hitting player
+            turret.StopLaser();
+        }
+    }
+}
+
+// Heavy enemy collisions with player bullets
+for (auto& bullet : bullets) {
+    if (!bullet.isActive) continue;
+    
+    for (auto& enemy : heavyEnemies) {
+        if (!enemy.isActive) continue;
+        
+        if (CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
+                          { enemy.posx, enemy.posy }, enemy.size / 2.0f)) {
+            
+            bool enemyDestroyed = enemy.TakeDamage();
+            PlaySound(hitEnemySound);
+            
+            if (enemyDestroyed) {
+                playerData.addScore(100);
+            }
+            
+            if (!bullet.isPiercing) {
+                bullet.isActive = false;
+            } else {
+                bullet.piercingHits++;
+                if (bullet.piercingHits >= bullet.maxPiercingHits) {
+                    bullet.isActive = false;
+                }
+            }
+            break; // Exit inner loop after hit
+        }
+    }
+}
+
+                // Heavy enemy collision with player
+                for (auto& enemy : heavyEnemies) {
+                    if (enemy.isActive && !player.IsShielded() && 
+                        CheckCollision({ player.posx, player.posy }, player.size / 2.0f,
+                        { enemy.posx, enemy.posy }, enemy.size / 2.0f)) {
+                        enemy.isActive = false;
+                        player.SetHealth(player.GetHealth() - 2); // Heavy enemies deal more damage
+                        PlaySound(hitHurtSound);
+                    }
+                }
+
+                // Player bullets vs laser turrets (make them destructible)
+                for (auto& bullet : bullets) {
+                    for (auto& turret : laserTurrets) {
+                        if (bullet.isActive && turret.isActive &&
+                            CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
+                            { turret.posx + turret.size / 2.0f, turret.posy + turret.size / 2.0f }, turret.size / 2.0f)) {
+                            turret.isActive = false;
+                            bullet.isActive = false;
+                            playerData.addScore(75);
+                            PlaySound(hitEnemySound);
+                        }
+                    }
+                }
                 for (auto& bullet : bullets) {
                     bool bulletHit = false;
                     
@@ -1148,6 +1336,8 @@ int main() {
             for (auto& bullet : bullets) bullet.Draw();
             for (auto& bullet : enemyBullets) bullet.Draw();
             for (auto& upgrade : upgrades) upgrade.Draw(); // Draw upgrades
+            for (auto& turret : laserTurrets) turret.Draw(); // Add this line
+            for (auto& heavy : heavyEnemies) heavy.Draw();
             player.Draw();
             
             // Draw UI with upgrade timers
@@ -1288,7 +1478,7 @@ int main() {
                                     gameStateManager.markTransitionHandled();
                                     std::cout << "Score added: " << playerData.getPlayerName() << " - " << playerData.getScore() << std::endl;
                                 }
-                            ResetGameState(player, bullets, enemies, complexEnemies, enemyBullets, meteors, upgrades, playerData, initialPosX, initialPosY);
+                            ResetGameState(player, bullets, enemies, complexEnemies, enemyBullets, meteors, upgrades, laserTurrets, heavyEnemies, playerData, initialPosX, initialPosY);
                         }
                         gameStateManager.setCurrentState(GameState::MAIN_MENU);
                         break;
@@ -1322,11 +1512,11 @@ int main() {
             DrawText(restartMsg, WIDTH / 2 - MeasureText(restartMsg, 20) / 2, HEIGHT / 2 + 40, 20, WHITE);
             
             EndDrawing();
-            ResetGameState(player, bullets, enemies, complexEnemies, enemyBullets, meteors, upgrades, playerData, initialPosX, initialPosY);
+            ResetGameState(player, bullets, enemies, complexEnemies, enemyBullets, meteors, upgrades, laserTurrets, heavyEnemies, playerData, initialPosX, initialPosY);
 
             if (IsKeyPressed(KEY_BACKSPACE)) {
                 gameOver = false;
-                player.SetHealth(3);
+                player.SetHealth(5);
                 newLevel = true;
                 gameStateManager.setCurrentState(GameState::MAIN_MENU);
             }
@@ -1340,7 +1530,7 @@ int main() {
             DrawText("WIN", WIDTH / 2 - MeasureText("WIN", 40) / 2, HEIGHT / 2 - 20, 40, GREEN);
             DrawText("Press R to play again", WIDTH / 2 - MeasureText("Press R to play again", 20) / 2, HEIGHT / 2 + 40, 20, WHITE);
             EndDrawing();
-            ResetGameState(player, bullets, enemies, complexEnemies, enemyBullets, meteors, upgrades, playerData, initialPosX, initialPosY);
+            ResetGameState(player, bullets, enemies, complexEnemies, enemyBullets, meteors, upgrades, laserTurrets, heavyEnemies, playerData, initialPosX, initialPosY);
 
             if (IsKeyPressed(KEY_R)) {
                 gameOver = false;
@@ -1370,6 +1560,8 @@ int main() {
     UnloadTexture(enemyBulletTexture);
     UnloadTexture(healthTexture);
     UnloadTexture(upgradeTexture);
+    UnloadTexture(laserTexture);
+    
     UnloadSound(backgroundMusic);
     UnloadSound(blipSelectSound);
     UnloadSound(hitEnemySound);
@@ -1377,6 +1569,8 @@ int main() {
     UnloadSound(laserShootSound);
     UnloadSound(powerUpSound);
     UnloadSound(enemyShootSound);
+    //UnloadSound(laserBeamSound);
+    //UnloadSound(heavyHitSound);
 
     CloseAudioDevice();
     CloseWindow();
