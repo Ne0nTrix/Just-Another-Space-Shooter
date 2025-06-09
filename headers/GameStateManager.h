@@ -5,6 +5,7 @@ class GameStateManager {
 private:
     GameState currentState;
     GameState previousState;
+    bool justTransitioned;
 
 public:
     GameStateManager(GameState initialState = GameState::MAIN_MENU);
@@ -12,5 +13,7 @@ public:
     GameState getPreviousState() const;
     void setCurrentState(GameState newState);
     bool isState(GameState state) const;
+    bool hasJustTransitioned() const; // Add this method
+    void markTransitionHandled(); // Add this method
 };
 

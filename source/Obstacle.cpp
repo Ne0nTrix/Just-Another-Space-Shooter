@@ -3,7 +3,7 @@
 #include <cmath>
 
 Obstacle::Obstacle(Texture* texture, float size)
-    : Entity(texture, 0, 0, size), size(size), isActive(true) {
+    : Entity(texture, 0, 0, size), size(size), isActive(true), speed(GetRandomValue(100, 200)) {
     posx = static_cast<float>(GetRandomValue(0, GetScreenWidth() - static_cast<int>(size)));
     posy = static_cast<float>(GetRandomValue(0, GetScreenHeight()/2 - static_cast<int>(size)));
     do {
@@ -16,7 +16,6 @@ Obstacle::Obstacle(Texture* texture, float size)
         direction.y /= length;
     }
 
-    speed = GetRandomValue(100, 200);
 }
 
 void Obstacle::Update()

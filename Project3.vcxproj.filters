@@ -45,6 +45,9 @@
     <Image Include="assets\health1_texture.png">
       <Filter>assests</Filter>
     </Image>
+    <Image Include="assets\upgrade_texture.png">
+      <Filter>assests</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="source\Background.cpp">
@@ -83,6 +86,9 @@
     <ClCompile Include="source\WebServer.cpp">
       <Filter>Pliki źródłowe</Filter>
     </ClCompile>
+    <ClCompile Include="source\Upgrade.cpp">
+      <Filter>Pliki źródłowe</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\Background.h">
@@ -119,6 +125,9 @@
       <Filter>Pliki nagłówkowe</Filter>
     </ClInclude>
     <ClInclude Include="headers\WebServer.h">
+      <Filter>Pliki nagłówkowe</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\Upgrade.h">
       <Filter>Pliki nagłówkowe</Filter>
     </ClInclude>
   </ItemGroup>

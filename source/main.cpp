@@ -7,12 +7,15 @@
 #include "ComplexEnemy.h"
 #include "PlayerData.h"
 #include "Scoreboard.h"
+#include "Upgrade.h"
 #include <vector>
 #include <iostream>
 #include <string>
 #include <algorithm>
 
 bool canSpawnEnemies = false;
+const float UPGRADE_DROP_CHANCE = 15.0f; // 15% chance
+const float LIFE_DROP_CHANCE = 20.0f;     // 5% chance
 
 bool CheckCollision(Vector2 pos1, float radius1, Vector2 pos2, float radius2) {
     float distance = sqrt(pow(pos1.x - pos2.x, 2) + pow(pos1.y - pos2.y, 2));
@@ -57,6 +60,55 @@ void CreateMeteor(std::vector<Obstacle>& meteors, Texture* smallTexture, Texture
     meteors.back().posy = posY;
 }
 
+void ResetGameState(Player& player, std::vector<Bullet>& bullets, std::vector<Enemy>& enemies, 
+                   std::vector<ComplexEnemy>& complexEnemies, std::vector<Bullet>& enemyBullets,
+                   std::vector<Obstacle>& meteors, std::vector<Upgrade>& upgrades,
+                   PlayerData& playerData, float initialPosX, float initialPosY) {
+    // Clear all vectors
+    bullets.clear();
+    enemies.clear();
+    complexEnemies.clear();
+    enemyBullets.clear();
+    meteors.clear();
+    upgrades.clear();
+    
+    // Reset player
+    player.ResetAllUpgrades();
+    player.SetHealth(3);
+    player.posx = initialPosX;
+    player.posy = initialPosY;
+    
+    // Reset score
+    playerData.resetScore();
+}
+
+void CreateUpgradeDrop(std::vector<Upgrade>& upgrades, Texture* upgradeTexture, float posX, float posY) {
+    float totalChance = UPGRADE_DROP_CHANCE + LIFE_DROP_CHANCE;
+    float roll = GetRandomValue(0, 1000) / 10.0f; // 0-100.0
+    
+    if (roll < totalChance) {
+        UpgradeType type;
+        if (roll < LIFE_DROP_CHANCE) {
+            type = UpgradeType::EXTRA_LIFE;
+        } else {
+            // Randomly choose from all upgrade types (excluding EXTRA_LIFE)
+            int upgradeChoice = GetRandomValue(0, 6); // 7 upgrade types (0-6)
+            switch (upgradeChoice) {
+                case 0: type = UpgradeType::FASTER_SHOOTING; break;
+                case 1: type = UpgradeType::BIGGER_BULLETS; break;
+                case 2: type = UpgradeType::TRIPLE_SHOT; break;
+                case 3: type = UpgradeType::PIERCING_BULLETS; break;
+                case 4: type = UpgradeType::SHIELD; break;
+                case 5: type = UpgradeType::FASTER_MOVEMENT; break;
+                case 6: type = UpgradeType::SLOW_ENEMIES; break;
+                default: type = UpgradeType::FASTER_SHOOTING; break;
+            }
+        }
+        
+        upgrades.emplace_back(upgradeTexture, posX, posY, type);
+    }
+}
+
 int main() {
     const int WIDTH = 1080;
     const int HEIGHT = 960;
@@ -77,6 +129,7 @@ int main() {
     Texture enemyTexture = LoadTexture("assets/enemy_texture.png");
     Texture enemyBulletTexture = LoadTexture("assets/enemy_bullet_texture.png");
     Texture healthTexture = LoadTexture("assets/health1_texture.png");
+    Texture upgradeTexture = LoadTexture("assets/upgrade_texture.png"); // You'll need to create this
 
     Background bg(&backgroundTex, 0, 0, 50.0f);
     Player player(&shipTexture, initialPosX, initialPosY, 200.0f);
@@ -85,6 +138,7 @@ int main() {
     std::vector<Enemy> enemies;
     std::vector<Bullet> enemyBullets;
     std::vector<ComplexEnemy> complexEnemies;
+    std::vector<Upgrade> upgrades;
 
     int destroyedMeteors = 0;
     int maxMeteors = 10;
@@ -333,17 +387,48 @@ int main() {
                     }
                 }
 
+                // Check bullet collisions with meteors and enemies
                 for (auto& bullet : bullets) {
+                    bool bulletHit = false;
+                    
+                    // Meteor collisions
                     for (auto& meteor : meteors) {
                         if (bullet.isActive && meteor.isActive &&
                             CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
                                 { meteor.posx + meteor.size / 2.0f, meteor.posy + meteor.size / 2.0f }, meteor.size / 2.0f)) {
-                            bullet.isActive = false;
                             meteor.isActive = false;
+                            
+                            if (!bullet.isPiercing) {
+                                bullet.isActive = false;
+                            } else {
+                                bullet.piercingHits++;
+                                if (bullet.piercingHits >= bullet.maxPiercingHits) {
+                                    bullet.isActive = false;
+                                }
+                            }
+                            bulletHit = true;
+                        }
+                    }
+                    
+                    // Enemy collisions
+                    for (auto& enemy : complexEnemies) {
+                        if (bullet.isActive && enemy.isActive &&
+                            CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
+                                { enemy.posx, enemy.posy }, enemy.size / 2.0f)) {
+                            enemy.isActive = false;
+                            
+                            if (!bullet.isPiercing) {
+                                bullet.isActive = false;
+                            } else {
+                                bullet.piercingHits++;
+                                if (bullet.piercingHits >= bullet.maxPiercingHits) {
+                                    bullet.isActive = false;
+                                }
+                            }
+                            bulletHit = true;
                         }
                     }
                 }
-
 
                 player.Event(bullets, &bulletTexture, 300.0f);
                 player.Update();
@@ -449,13 +534,45 @@ int main() {
                     }
                 }
                 
+                // Check bullet collisions with meteors and enemies
                 for (auto& bullet : bullets) {
+                    bool bulletHit = false;
+                    
+                    // Meteor collisions
                     for (auto& meteor : meteors) {
                         if (bullet.isActive && meteor.isActive &&
                             CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
                                 { meteor.posx + meteor.size / 2.0f, meteor.posy + meteor.size / 2.0f }, meteor.size / 2.0f)) {
-                            bullet.isActive = false;
                             meteor.isActive = false;
+                            
+                            if (!bullet.isPiercing) {
+                                bullet.isActive = false;
+                            } else {
+                                bullet.piercingHits++;
+                                if (bullet.piercingHits >= bullet.maxPiercingHits) {
+                                    bullet.isActive = false;
+                                }
+                            }
+                            bulletHit = true;
+                        }
+                    }
+                    
+                    // Enemy collisions
+                    for (auto& enemy : complexEnemies) {
+                        if (bullet.isActive && enemy.isActive &&
+                            CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
+                                { enemy.posx, enemy.posy }, enemy.size / 2.0f)) {
+                            enemy.isActive = false;
+                            
+                            if (!bullet.isPiercing) {
+                                bullet.isActive = false;
+                            } else {
+                                bullet.piercingHits++;
+                                if (bullet.piercingHits >= bullet.maxPiercingHits) {
+                                    bullet.isActive = false;
+                                }
+                            }
+                            bulletHit = true;
                         }
                     }
                 }
@@ -605,24 +722,45 @@ int main() {
                         }
                     }
 
+                    // Check bullet collisions with meteors and enemies
                     for (auto& bullet : bullets) {
+                        bool bulletHit = false;
+                        
+                        // Meteor collisions
                         for (auto& meteor : meteors) {
                             if (bullet.isActive && meteor.isActive &&
                                 CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
                                     { meteor.posx + meteor.size / 2.0f, meteor.posy + meteor.size / 2.0f }, meteor.size / 2.0f)) {
-                                bullet.isActive = false;
                                 meteor.isActive = false;
+                                
+                                if (!bullet.isPiercing) {
+                                    bullet.isActive = false;
+                                } else {
+                                    bullet.piercingHits++;
+                                    if (bullet.piercingHits >= bullet.maxPiercingHits) {
+                                        bullet.isActive = false;
+                                    }
+                                }
+                                bulletHit = true;
                             }
                         }
-                    }
-
-                    for (auto& bullet : bullets) {
+                        
+                        // Enemy collisions
                         for (auto& enemy : complexEnemies) {
                             if (bullet.isActive && enemy.isActive &&
                                 CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
                                     { enemy.posx, enemy.posy }, enemy.size / 2.0f)) {
-                                bullet.isActive = false;
                                 enemy.isActive = false;
+                                
+                                if (!bullet.isPiercing) {
+                                    bullet.isActive = false;
+                                } else {
+                                    bullet.piercingHits++;
+                                    if (bullet.piercingHits >= bullet.maxPiercingHits) {
+                                        bullet.isActive = false;
+                                    }
+                                }
+                                bulletHit = true;
                             }
                         }
                     }
@@ -731,23 +869,45 @@ int main() {
                     
                     newLevel = false;
                 }
-                for (auto& meteor : meteors) meteor.Update();
+                    for (auto& meteor : meteors) {
+                    // Apply slow effect if active
+                        float originalSpeed = meteor.speed;
+                        if (player.HasSlowEnemies()) {
+                            meteor.speed *= 0.2f; // 50% speed reduction
+                        }
+                        
+                        meteor.Update();
+                        
+                        // Restore original speed after update
+                        meteor.speed = originalSpeed;
+                }
 
                 while (meteors.size() < maxMeteors) {
                     CreateMeteor(meteors, &smallMeteorTexture, &mediumMeteorTexture, &largeMeteorTexture, 
                                 GetRandomValue(0, 2), 0, 0, player.posx, player.posy, 200.0f);
                 }
                 for (auto& enemy : complexEnemies) {
-                    enemy.SetPlayerPosition({ player.posx, player.posy });
-                    enemy.Update(complexEnemies);
-                    if (enemy.isActive) {
-                        if (enemy.CanShoot(GetFrameTime())) {
-                            Vector2 bulletDirection = { cos((enemy.rotation + 90) * DEG2RAD), sin((enemy.rotation + 90) * DEG2RAD) };
-                            Bullet newBullet(&enemyBulletTexture, enemy.posx + enemy.size / 2.0f, enemy.posy + enemy.size / 2.0f, 4, bulletDirection, 350.0f);
-                            enemyBullets.push_back(newBullet);
-                        }
+                enemy.SetPlayerPosition({ player.posx, player.posy });
+                
+                // Apply slow effect if active
+                float originalSpeed = enemy.speed;
+                if (player.HasSlowEnemies()) {
+                    enemy.speed *= 0.5f; // 50% speed reduction
+                }
+                
+                enemy.Update(complexEnemies);
+                
+                // Restore original speed after update
+                enemy.speed = originalSpeed;
+                
+                if (enemy.isActive) {
+                    if (enemy.CanShoot(GetFrameTime())) {
+                        Vector2 bulletDirection = { cos((enemy.rotation + 90) * DEG2RAD), sin((enemy.rotation + 90) * DEG2RAD) };
+                        Bullet newBullet(&enemyBulletTexture, enemy.posx + enemy.size / 2.0f, enemy.posy + enemy.size / 2.0f, 4, bulletDirection, 350.0f);
+                        enemyBullets.push_back(newBullet);
                     }
                 }
+            }
 
                 for (auto& bullet : enemyBullets) {
                     bullet.Update();
@@ -760,8 +920,53 @@ int main() {
                     [](Bullet& b) { return !b.isActive; }),
                     enemyBullets.end());
 
+                // Check bullet collisions with meteors and enemies
+                for (auto& bullet : bullets) {
+                    bool bulletHit = false;
+                    
+                    // Meteor collisions
+                    for (auto& meteor : meteors) {
+                        if (bullet.isActive && meteor.isActive &&
+                            CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
+                                { meteor.posx + meteor.size / 2.0f, meteor.posy + meteor.size / 2.0f }, meteor.size / 2.0f)) {
+                            meteor.isActive = false;
+                            
+                            if (!bullet.isPiercing) {
+                                bullet.isActive = false;
+                            } else {
+                                bullet.piercingHits++;
+                                if (bullet.piercingHits >= bullet.maxPiercingHits) {
+                                    bullet.isActive = false;
+                                }
+                            }
+                            bulletHit = true;
+                        }
+                    }
+                    
+                    // Enemy collisions
+                    for (auto& enemy : complexEnemies) {
+                        if (bullet.isActive && enemy.isActive &&
+                            CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
+                                { enemy.posx, enemy.posy }, enemy.size / 2.0f)) {
+                            enemy.isActive = false;
+                            
+                            if (!bullet.isPiercing) {
+                                bullet.isActive = false;
+                            } else {
+                                bullet.piercingHits++;
+                                if (bullet.piercingHits >= bullet.maxPiercingHits) {
+                                    bullet.isActive = false;
+                                }
+                            }
+                            bulletHit = true;
+                        }
+                    }
+                }
+
+                // Player collision with shield check
                 for (auto& bullet : enemyBullets) {
-                    if (bullet.isActive && CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
+                    if (bullet.isActive && !player.IsShielded() && 
+                        CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
                         { player.posx, player.posy }, player.size / 2.0f)) {
                         bullet.isActive = false;
                         player.SetHealth(player.GetHealth() - 1);
@@ -769,41 +974,69 @@ int main() {
                 }
 
                 for (auto& meteor : meteors) {
-                    if (meteor.isActive && CheckCollision({ player.posx, player.posy }, player.size / 2.0f,
+                    if (meteor.isActive && !player.IsShielded() && 
+                        CheckCollision({ player.posx, player.posy }, player.size / 2.0f,
                         { meteor.posx + meteor.size / 2.0f, meteor.posy + meteor.size / 2.0f }, meteor.size / 2.0f)) {
                         meteor.isActive = false;
                         player.SetHealth(player.GetHealth() - 1);
                     }
                 }
 
-                for (auto& bullet : bullets) {
-                    for (auto& meteor : meteors) {
-                        if (bullet.isActive && meteor.isActive &&
-                            CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
-                                { meteor.posx + meteor.size / 2.0f, meteor.posy + meteor.size / 2.0f }, meteor.size / 2.0f)) {
-                            bullet.isActive = false;
-                            meteor.isActive = false;
-                        }
-                    }
-                }
-
-                for (auto& bullet : bullets) {
-                    for (auto& enemy : complexEnemies) {
-                        if (bullet.isActive && enemy.isActive &&
-                            CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
-                                { enemy.posx, enemy.posy }, enemy.size / 2.0f)) {
-                            bullet.isActive = false;
-                            enemy.isActive = false;
-                        }
-                    }
-                }
-
                 for (auto& enemy : complexEnemies) {
-                    if (enemy.isActive && CheckCollision({ player.posx, player.posy }, player.size / 2.0f,
+                    if (enemy.isActive && !player.IsShielded() && 
+                        CheckCollision({ player.posx, player.posy }, player.size / 2.0f,
                         { enemy.posx, enemy.posy }, enemy.size / 2.0f)) {
                         enemy.isActive = false;
                         player.SetHealth(player.GetHealth() - 1);
                     }
+                }
+
+                // Update upgrades
+                for (auto& upgrade : upgrades) {
+                    upgrade.Update();
+                }
+                
+                // Remove inactive upgrades
+                upgrades.erase(std::remove_if(upgrades.begin(), upgrades.end(),
+                    [](const Upgrade& u) { return !u.isActive; }),
+                    upgrades.end());
+                
+                // Check upgrade pickup collisions
+                for (auto& upgrade : upgrades) {
+                    if (upgrade.isActive && CheckCollision({ player.posx, player.posy }, player.size / 2.0f,
+                        { upgrade.posx + upgrade.size / 2.0f, upgrade.posy + upgrade.size / 2.0f }, upgrade.size / 2.0f)) {
+                        upgrade.isActive = false;
+                        player.ApplyUpgrade((int)upgrade.type);
+                        
+                        // Add visual/audio feedback here
+                        std::cout << "Upgrade picked up!" << std::endl;
+                    }
+                }
+                
+                for (size_t i = 0; i < meteors.size(); i++) {
+                    if (!meteors[i].isActive) {
+                        // Create potential upgrade drop
+                        CreateUpgradeDrop(upgrades, &upgradeTexture, meteors[i].posx, meteors[i].posy);
+                        
+                        meteors.erase(meteors.begin() + i);
+                        playerData.addScore(10);
+                        i--;
+                    }
+                }
+
+                for (size_t i = 0; i < complexEnemies.size(); i++) {
+                    if (!complexEnemies[i].isActive) {
+                        // Create potential upgrade drop
+                        CreateUpgradeDrop(upgrades, &upgradeTexture, complexEnemies[i].posx, complexEnemies[i].posy);
+                        
+                        complexEnemies.erase(complexEnemies.begin() + i);
+                        playerData.addScore(50);
+                        i--;
+                    }
+                }
+                
+                if (player.GetHealth() <= 0) {
+                    gameOver = true;
                 }
 
                 player.Event(bullets, &bulletTexture, 300.0f);
@@ -862,17 +1095,52 @@ int main() {
             ClearBackground(RAYWHITE);
             bg.Draw();
             
+            // Draw game entities
             for (auto& meteor : meteors) meteor.Draw();
             for (auto& enemy : complexEnemies) enemy.Draw();
             for (auto& bullet : bullets) bullet.Draw();
             for (auto& bullet : enemyBullets) bullet.Draw();
+            for (auto& upgrade : upgrades) upgrade.Draw(); // Draw upgrades
             player.Draw();
             
+            // Draw UI with upgrade timers
             std::string scoreText = "SCORE: " + std::to_string(playerData.getScore());
             DrawText(scoreText.c_str(), 10, 50, 20, WHITE);
             
             DrawText(playerData.getPlayerName().c_str(), 10, 80, 20, WHITE);
             
+            // Draw upgrade status
+            int yOffset = 110;
+            if (player.GetCurrentShootCooldown() < 0.5f) {
+                DrawText("FAST SHOOTING ACTIVE!", 10, yOffset, 16, RED);
+                yOffset += 20;
+            }
+            if (player.GetCurrentBulletSize() > 1.0f) {
+                DrawText("BIG BULLETS ACTIVE!", 10, yOffset, 16, BLUE);
+                yOffset += 20;
+            }
+            if (player.HasTripleShot()) {
+                DrawText("TRIPLE SHOT ACTIVE!", 10, yOffset, 16, YELLOW);
+                yOffset += 20;
+            }
+            if (player.HasPiercingBullets()) {
+                DrawText("PIERCING BULLETS ACTIVE!", 10, yOffset, 16, ORANGE);
+                yOffset += 20;
+            }
+            if (player.IsShielded()) {
+                DrawText("SHIELD ACTIVE!", 10, yOffset, 16, SKYBLUE);
+                yOffset += 20;
+            }
+            if (player.GetCurrentSpeed() > 200.0f) {
+                DrawText("FAST MOVEMENT ACTIVE!", 10, yOffset, 16, GREEN);
+                yOffset += 20;
+            }
+            if (player.HasSlowEnemies()) {
+                DrawText("SLOW ENEMIES ACTIVE!", 10, yOffset, 16, PURPLE);
+                yOffset += 20;
+            }
+            
+            // Draw health
             for (int i = 0; i < player.GetHealth(); i++) {
                 DrawTexture(healthTexture, 10 + i * (healthTexture.width + 5), 10, WHITE);
             }
@@ -965,7 +1233,12 @@ int main() {
                         break;
                     case 1:
                         if (gameStateManager.getCurrentState() == GameState::PAUSE) {
-                            scoreboard.addScore(PlayerScore(playerData.getPlayerName(), playerData.getScore(), playerData.getDifficulty()));
+                                if (gameStateManager.hasJustTransitioned() && gameStateManager.getPreviousState() == GameState::INFINITE_MODE) {
+                                    scoreboard.addScore(PlayerScore(playerData.getPlayerName(), playerData.getScore(), playerData.getDifficulty()));
+                                    gameStateManager.markTransitionHandled();
+                                    std::cout << "Score added: " << playerData.getPlayerName() << " - " << playerData.getScore() << std::endl;
+                                }
+                            ResetGameState(player, bullets, enemies, complexEnemies, enemyBullets, meteors, upgrades, playerData, initialPosX, initialPosY);
                         }
                         gameStateManager.setCurrentState(GameState::MAIN_MENU);
                         break;
@@ -983,7 +1256,11 @@ int main() {
         case GameState::GAME_OVER:
         {
             if (gameStateManager.getPreviousState() == GameState::INFINITE_MODE) {
-                scoreboard.addScore(PlayerScore(playerData.getPlayerName(), playerData.getScore(), playerData.getDifficulty()));
+                if (gameStateManager.hasJustTransitioned() && gameStateManager.getPreviousState() == GameState::INFINITE_MODE) {
+                                    scoreboard.addScore(PlayerScore(playerData.getPlayerName(), playerData.getScore(), playerData.getDifficulty()));
+                                    gameStateManager.markTransitionHandled();
+                                    std::cout << "Score added: " << playerData.getPlayerName() << " - " << playerData.getScore() << std::endl;
+                                }
             }
             
             BeginDrawing();
@@ -995,11 +1272,7 @@ int main() {
             DrawText(restartMsg, WIDTH / 2 - MeasureText(restartMsg, 20) / 2, HEIGHT / 2 + 40, 20, WHITE);
             
             EndDrawing();
-            bullets.clear();
-            enemies.clear();
-            complexEnemies.clear();
-            enemyBullets.clear();
-            meteors.clear();
+            ResetGameState(player, bullets, enemies, complexEnemies, enemyBullets, meteors, upgrades, playerData, initialPosX, initialPosY);
 
             if (IsKeyPressed(KEY_BACKSPACE)) {
                 gameOver = false;
@@ -1017,11 +1290,7 @@ int main() {
             DrawText("WIN", WIDTH / 2 - MeasureText("WIN", 40) / 2, HEIGHT / 2 - 20, 40, GREEN);
             DrawText("Press R to play again", WIDTH / 2 - MeasureText("Press R to play again", 20) / 2, HEIGHT / 2 + 40, 20, WHITE);
             EndDrawing();
-            bullets.clear();
-            enemies.clear();
-            complexEnemies.clear();
-            enemyBullets.clear();
-            meteors.clear();
+            ResetGameState(player, bullets, enemies, complexEnemies, enemyBullets, meteors, upgrades, playerData, initialPosX, initialPosY);
 
             if (IsKeyPressed(KEY_R)) {
                 gameOver = false;
@@ -1050,6 +1319,7 @@ int main() {
     UnloadTexture(enemyTexture);
     UnloadTexture(enemyBulletTexture);
     UnloadTexture(healthTexture);
+    UnloadTexture(upgradeTexture);
     CloseWindow();
     return 0;
 }

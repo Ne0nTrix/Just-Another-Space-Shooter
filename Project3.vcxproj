@@ -139,6 +139,7 @@
     <Image Include="assets\meteor_small_texture.png" />
     <Image Include="assets\ship_texture.png" />
     <Image Include="assets\Space_Background.png" />
+    <Image Include="assets\upgrade_texture.png" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="source\Background.cpp" />
@@ -152,6 +153,7 @@
     <ClCompile Include="source\Player.cpp" />
     <ClCompile Include="source\PlayerData.cpp" />
     <ClCompile Include="source\Scoreboard.cpp" />
+    <ClCompile Include="source\Upgrade.cpp" />
     <ClCompile Include="source\WebServer.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -166,6 +168,7 @@
     <ClInclude Include="headers\Player.h" />
     <ClInclude Include="headers\PlayerData.h" />
     <ClInclude Include="headers\Scoreboard.h" />
+    <ClInclude Include="headers\Upgrade.h" />
     <ClInclude Include="headers\WebServer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
