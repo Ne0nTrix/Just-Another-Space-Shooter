@@ -16,42 +16,37 @@ void Upgrade::Update() {
 
 void Upgrade::Draw() const {
     if (isActive) {
-        // Create a blinking effect
         float alpha = 0.7f + 0.3f * sin(blinkTimer * 8.0f);
         Color tint = WHITE;
         tint.a = (unsigned char)(255 * alpha);
-        
-        // Different colors for different upgrade types
         switch (type) {
             case UpgradeType::FASTER_SHOOTING:
-                tint.r = 255; tint.g = 100; tint.b = 100; // Red tint
+                tint.r = 255; tint.g = 100; tint.b = 100;
                 break;
             case UpgradeType::BIGGER_BULLETS:
-                tint.r = 100; tint.g = 100; tint.b = 255; // Blue tint
+                tint.r = 100; tint.g = 100; tint.b = 255;
                 break;
             case UpgradeType::EXTRA_LIFE:
-                tint.r = 100; tint.g = 255; tint.b = 100; // Green tint
+                tint.r = 100; tint.g = 255; tint.b = 100;
                 break;
             case UpgradeType::TRIPLE_SHOT:
-                tint.r = 255; tint.g = 255; tint.b = 100; // Yellow tint
+                tint.r = 255; tint.g = 255; tint.b = 100;
                 break;
             case UpgradeType::PIERCING_BULLETS:
-                tint.r = 255; tint.g = 100; tint.b = 255; // Magenta tint
+                tint.r = 255; tint.g = 100; tint.b = 255;
                 break;
             case UpgradeType::SHIELD:
-                tint.r = 100; tint.g = 255; tint.b = 255; // Cyan tint
+                tint.r = 100; tint.g = 255; tint.b = 255;
                 break;
             case UpgradeType::FASTER_MOVEMENT:
-                tint.r = 255; tint.g = 255; tint.b = 255; // White tint
+                tint.r = 255; tint.g = 255; tint.b = 255;
                 break;
             case UpgradeType::SLOW_ENEMIES:
-                tint.r = 128; tint.g = 128; tint.b = 255; // Light blue tint
+                tint.r = 128; tint.g = 128; tint.b = 255;
                 break;
         }
         
         DrawTexture(*texture, (int)posx, (int)posy, tint);
-        
-        // Draw a glow effect
         DrawCircle((int)(posx + size/2), (int)(posy + size/2), size/2 + 2, 
                   Color{tint.r, tint.g, tint.b, (unsigned char)(50 * alpha)});
     }

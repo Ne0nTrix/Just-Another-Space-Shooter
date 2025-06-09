@@ -13,7 +13,7 @@ public:
     GameState getPreviousState() const;
     void setCurrentState(GameState newState);
     bool isState(GameState state) const;
-    bool hasJustTransitioned() const; // Add this method
-    void markTransitionHandled(); // Add this method
+    bool hasJustTransitioned() const;
+    void markTransitionHandled();
 };
 

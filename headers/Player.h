@@ -16,8 +16,6 @@ public:
     int GetHealth() const { return health; }
     void SetHealth(int value) { health = value; }
     int GetMaxHealth() const { return maxHealth; }
-    
-    // Upgrade system
     void ApplyUpgrade(int upgradeType);
     void UpdateUpgrades();
     float GetCurrentShootCooldown() const { return shootCooldown * shootSpeedMultiplier; }
@@ -36,8 +34,6 @@ private:
     float currentCooldown;
     int health = 3;
     int maxHealth = 5;
-    
-    // Upgrade effects
     float shootSpeedMultiplier = 1.0f;
     float bulletSizeMultiplier = 1.0f;
     float speedMultiplier = 1.0f;

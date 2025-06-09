@@ -5,9 +5,9 @@ class Bullet : public Entity
 public:
     float speed;
     bool isActive;
-    bool isPiercing = false;  // New property
-    int piercingHits = 0;     // Track how many enemies it has hit
-    int maxPiercingHits = 3;  // Max enemies it can pierce through
+    bool isPiercing = false;
+    int piercingHits = 0;
+    int maxPiercingHits = 3;
 
     Bullet(Texture* texture, float posx, float posy, float size, Vector2 dir, float speed, bool piercing = false);
     void Update() override;

@@ -5,21 +5,8 @@
 
 Scoreboard::Scoreboard() {
     connection = nullptr;
-    
-    // Try to initialize MySQL
     try {
         if (connectToDatabase()) {
-            // Create table if it doesn't exist
-            const char* createTableQuery = 
-                "CREATE TABLE IF NOT EXISTS highscores ("
-                "id INT AUTO_INCREMENT PRIMARY KEY,"
-                "player_name VARCHAR(50) NOT NULL,"
-                "score INT NOT NULL,"
-                "difficulty ENUM('EASY', 'MEDIUM', 'HARD') NOT NULL,"
-                "date_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
-                ")";
-                
-            mysql_query(static_cast<MYSQL*>(connection), createTableQuery);
             loadScores();
         }
     }

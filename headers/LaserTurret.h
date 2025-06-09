@@ -12,7 +12,6 @@ public:
     bool isShooting;
     bool isLeftSide;
     
-    // Add movement variables
     float initialY;
     float moveSpeed;
     float moveRange;

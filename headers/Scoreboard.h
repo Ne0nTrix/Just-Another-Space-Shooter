@@ -13,18 +13,14 @@ private:
     const std::string DB_PASS = "2137";
     const std::string DB_NAME = "space_shooter";
     const int DB_PORT = 3306;
-    
     bool connectToDatabase();
     void closeConnection();
 
 public:
     Scoreboard();
     ~Scoreboard();
-    
     void loadScores();
-    
     bool addScore(const PlayerScore& score);
     const std::vector<PlayerScore>& getScores() const;
-    
     void clearScores();
 };

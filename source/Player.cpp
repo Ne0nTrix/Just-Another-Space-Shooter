@@ -5,12 +5,11 @@
 
 Player::Player(Texture* texture, float posx, float posy, float speed)
 : Entity(texture, posx, posy, 32), speed(speed), shootCooldown(0.5f), currentCooldown(0.0f), rotation(0.0f) {
-    health = maxHealth; // Start with full health (5)
+    health = maxHealth;
 }
 
 void Player::Event(std::vector<Bullet>& bullets, Texture* bulletTexture, float bulletSpeed, Sound* shootSound)
 {
-    // Use modified speed
     float currentSpeed = GetCurrentSpeed();
     
     if (IsKeyDown(KEY_W)) posy -= currentSpeed * GetFrameTime();
@@ -29,8 +28,6 @@ void Player::Event(std::vector<Bullet>& bullets, Texture* bulletTexture, float b
             Shoot(bullets, bulletTexture, bulletSpeed);
         }
         currentCooldown = GetCurrentShootCooldown();
-        
-        // Play shooting sound
         if (shootSound != nullptr) {
             PlaySound(*shootSound);
         }
@@ -41,11 +38,7 @@ void Player::Event(std::vector<Bullet>& bullets, Texture* bulletTexture, float b
 void Player::Draw() const
 {
     Vector2 center = { static_cast<float>(texture->width / 2.0), static_cast<float>(texture->height / 2.0) };
-    
-    // Add visual effects for active upgrades
     Color playerTint = WHITE;
-    
-    // Shield effect
     if (IsShielded()) {
         float shieldAlpha = 0.3f + 0.2f * sin(GetTime() * 10.0f);
         DrawCircle((int)posx, (int)posy, size/2 + 8, Color{100, 200, 255, (unsigned char)(255 * shieldAlpha)});
@@ -102,17 +95,11 @@ void Player::ShootTriple(std::vector<Bullet>& bullets, Texture* bulletTexture, f
     float radians = (rotation - 90) * (PI / 180);
     float bulletSize = 4 * GetCurrentBulletSize();
     bool piercing = HasPiercingBullets();
-    
-    // Center bullet
     Vector2 direction1 = { cos(radians), sin(radians) };
     bullets.emplace_back(bulletTexture, posx, posy, bulletSize, direction1, bulletSpeed, piercing);
-    
-    // Left bullet (15 degrees offset)
     float leftAngle = radians - (15 * PI / 180);
     Vector2 direction2 = { cos(leftAngle), sin(leftAngle) };
     bullets.emplace_back(bulletTexture, posx - 10, posy, bulletSize, direction2, bulletSpeed, piercing);
-    
-    // Right bullet (15 degrees offset)
     float rightAngle = radians + (15 * PI / 180);
     Vector2 direction3 = { cos(rightAngle), sin(rightAngle) };
     bullets.emplace_back(bulletTexture, posx + 10, posy, bulletSize, direction3, bulletSpeed, piercing);
@@ -120,40 +107,39 @@ void Player::ShootTriple(std::vector<Bullet>& bullets, Texture* bulletTexture, f
 
 void Player::ApplyUpgrade(int upgradeType) {
     switch (upgradeType) {
-        case 0: // FASTER_SHOOTING
+        case 0:
             shootSpeedMultiplier = 0.3f;
             fasterShootingTimer = UPGRADE_DURATION;
             break;
-        case 1: // BIGGER_BULLETS
+        case 1:
             bulletSizeMultiplier = 2.0f;
             biggerBulletsTimer = UPGRADE_DURATION;
             break;
-        case 2: // EXTRA_LIFE
+        case 2:
             if (health < maxHealth) {
                 health++;
             }
             break;
-        case 3: // TRIPLE_SHOT
+        case 3:
             tripleShotTimer = UPGRADE_DURATION;
             break;
-        case 4: // PIERCING_BULLETS
+        case 4:
             piercingBulletsTimer = UPGRADE_DURATION;
             break;
-        case 5: // SHIELD
+        case 5:
             shieldTimer = UPGRADE_DURATION;
             break;
-        case 6: // FASTER_MOVEMENT
+        case 6:
             speedMultiplier = 1.5f;
             fasterMovementTimer = UPGRADE_DURATION;
             break;
-        case 7: // SLOW_ENEMIES
+        case 7:
             slowEnemiesTimer = UPGRADE_DURATION;
             break;
     }
 }
 
 void Player::UpdateUpgrades() {
-    // Update timers and reset effects when they expire
     if (fasterShootingTimer > 0) {
         fasterShootingTimer -= GetFrameTime();
         if (fasterShootingTimer <= 0) {
@@ -193,12 +179,9 @@ void Player::UpdateUpgrades() {
 }
 
 void Player::ResetAllUpgrades() {
-    // Reset all upgrade effects
     shootSpeedMultiplier = 1.0f;
     bulletSizeMultiplier = 1.0f;
     speedMultiplier = 1.0f;
-    
-    // Reset all timers
     fasterShootingTimer = 0.0f;
     biggerBulletsTimer = 0.0f;
     tripleShotTimer = 0.0f;

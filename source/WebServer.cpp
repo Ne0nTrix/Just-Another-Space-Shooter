@@ -3,21 +3,15 @@
 #include <thread>
 #include <sstream>
 #include <chrono>
-
-// Include httplib only in cpp file
 #include <httplib.h>
 
 WebServer::WebServer(Scoreboard* sb, int serverPort) 
     : scoreboard(sb), port(serverPort), running(false) {
     
     server = new httplib::Server();
-    
-    // Main page route
     server->Get("/", [this](const httplib::Request&, httplib::Response& res) {
         res.set_content(generateHTML(), "text/html; charset=utf-8");
     });
-    
-    // API route for scores
     server->Get("/api/scores", [this](const httplib::Request&, httplib::Response& res) {
         scoreboard->loadScores();
         res.set_header("Access-Control-Allow-Origin", "*");
@@ -25,8 +19,6 @@ WebServer::WebServer(Scoreboard* sb, int serverPort)
         res.set_header("Access-Control-Allow-Headers", "Content-Type");
         res.set_content(generateJSON(), "application/json; charset=utf-8");
     });
-    
-    // CSS stylesheet route
     server->Get("/style.css", [](const httplib::Request&, httplib::Response& res) {
         std::string css = R"(
             body {
@@ -134,8 +126,6 @@ WebServer::WebServer(Scoreboard* sb, int serverPort)
         )";
         res.set_content(css, "text/css");
     });
-    
-    // Health check endpoint
     server->Get("/health", [](const httplib::Request&, httplib::Response& res) {
         res.set_content("{\"status\":\"ok\",\"service\":\"Space Shooter Highscores\"}", "application/json");
     });

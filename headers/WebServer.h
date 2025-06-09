@@ -4,7 +4,6 @@
 #include <thread>
 #include <atomic>
 
-// Forward declare httplib to avoid including it in header
 namespace httplib {
     class Server;
 }

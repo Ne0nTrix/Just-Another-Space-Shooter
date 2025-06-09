@@ -16,8 +16,8 @@
 #include <algorithm>
 
 bool canSpawnEnemies = false;
-const float UPGRADE_DROP_CHANCE = 15.0f; // 15% chance
-const float LIFE_DROP_CHANCE = 20.0f;     // 5% chance
+const float UPGRADE_DROP_CHANCE = 15.0f;
+const float LIFE_DROP_CHANCE = 20.0f;
 
 bool CheckCollision(Vector2 pos1, float radius1, Vector2 pos2, float radius2) {
     float distance = sqrt(pow(pos1.x - pos2.x, 2) + pow(pos1.y - pos2.y, 2));
@@ -66,37 +66,33 @@ void ResetGameState(Player& player, std::vector<Bullet>& bullets, std::vector<En
                    std::vector<ComplexEnemy>& complexEnemies, std::vector<Bullet>& enemyBullets,
                    std::vector<Obstacle>& meteors, std::vector<Upgrade>& upgrades, std::vector<LaserTurret>& laserTurrets, std::vector<HeavyEnemy>& heavyEnemies,
                    PlayerData& playerData, float initialPosX, float initialPosY) {
-    // Clear all vectors
     bullets.clear();
     enemies.clear();
     complexEnemies.clear();
     enemyBullets.clear();
     meteors.clear();
     upgrades.clear();
-    laserTurrets.clear(); // Add this line
-    heavyEnemies.clear(); // Add this line
+    laserTurrets.clear();
+    heavyEnemies.clear();
     
-    // Reset player
     player.ResetAllUpgrades();
     player.SetHealth(5);
     player.posx = initialPosX;
     player.posy = initialPosY;
     
-    // Reset score
     playerData.resetScore();
 }
 
 void CreateUpgradeDrop(std::vector<Upgrade>& upgrades, Texture* upgradeTexture, float posX, float posY) {
     float totalChance = UPGRADE_DROP_CHANCE + LIFE_DROP_CHANCE;
-    float roll = GetRandomValue(0, 1000) / 10.0f; // 0-100.0
+    float roll = GetRandomValue(0, 1000) / 10.0f;
     
     if (roll < totalChance) {
         UpgradeType type;
         if (roll < LIFE_DROP_CHANCE) {
             type = UpgradeType::EXTRA_LIFE;
         } else {
-            // Randomly choose from all upgrade types (excluding EXTRA_LIFE)
-            int upgradeChoice = GetRandomValue(0, 6); // 7 upgrade types (0-6)
+            int upgradeChoice = GetRandomValue(0, 6);
             switch (upgradeChoice) {
                 case 0: type = UpgradeType::FASTER_SHOOTING; break;
                 case 1: type = UpgradeType::BIGGER_BULLETS; break;
@@ -134,7 +130,7 @@ int main() {
     Texture enemyTexture = LoadTexture("assets/enemy_texture.png");
     Texture enemyBulletTexture = LoadTexture("assets/enemy_bullet_texture.png");
     Texture healthTexture = LoadTexture("assets/health1_texture.png");
-    Texture upgradeTexture = LoadTexture("assets/upgrade_texture.png"); // You'll need to create this
+    Texture upgradeTexture = LoadTexture("assets/upgrade_texture.png");
     Texture laserTexture = LoadTexture("assets/laser_texture.png");
     
     Sound backgroundMusic = LoadSound("assets/music/background.wav");
@@ -144,6 +140,9 @@ int main() {
     Sound laserShootSound = LoadSound("assets/music/laserShoot.wav");
     Sound powerUpSound = LoadSound("assets/music/powerUp.wav");
     Sound enemyShootSound = LoadSound("assets/music/laserShootEnemy.wav");
+    Sound laserBeamSound = LoadSound("assets/music/laser.wav");
+    Sound heavyHitSound = LoadSound("assets/music/heavy.wav");
+
 
     SetSoundVolume(backgroundMusic, 0.6f);
     SetSoundVolume(blipSelectSound, 0.7f);
@@ -151,6 +150,8 @@ int main() {
     SetSoundVolume(hitHurtSound, 0.8f);
     SetSoundVolume(laserShootSound, 0.5f);
     SetSoundVolume(powerUpSound, 0.7f);
+    SetSoundVolume(laserBeamSound, 0.4f);
+    SetSoundVolume(heavyHitSound, 0.6f);  
     
     PlaySound(backgroundMusic);
     bool musicPlaying = true;
@@ -428,17 +429,15 @@ int main() {
                     }
                 }
 
-                // Check bullet collisions with meteors and enemies
                 for (auto& bullet : bullets) {
                     bool bulletHit = false;
                     
-                    // Meteor collisions
                     for (auto& meteor : meteors) {
                         if (bullet.isActive && meteor.isActive &&
                             CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
                                 { meteor.posx + meteor.size / 2.0f, meteor.posy + meteor.size / 2.0f }, meteor.size / 2.0f)) {
                             meteor.isActive = false;
-                            PlaySound(hitEnemySound); // Add this line
+                            PlaySound(hitEnemySound);
                             
                             if (!bullet.isPiercing) {
                                 bullet.isActive = false;
@@ -452,13 +451,12 @@ int main() {
                         }
                     }
                     
-                    // Enemy collisions
                     for (auto& enemy : complexEnemies) {
                         if (bullet.isActive && enemy.isActive &&
                             CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
                                 { enemy.posx, enemy.posy }, enemy.size / 2.0f)) {
                             enemy.isActive = false;
-                            PlaySound(hitEnemySound); // Add this line
+                            PlaySound(hitEnemySound);
                             
                             if (!bullet.isPiercing) {
                                 bullet.isActive = false;
@@ -577,17 +575,15 @@ int main() {
                     }
                 }
                 
-                // Check bullet collisions with meteors and enemies
                 for (auto& bullet : bullets) {
                     bool bulletHit = false;
                     
-                    // Meteor collisions
                     for (auto& meteor : meteors) {
                         if (bullet.isActive && meteor.isActive &&
                             CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
                                 { meteor.posx + meteor.size / 2.0f, meteor.posy + meteor.size / 2.0f }, meteor.size / 2.0f)) {
                             meteor.isActive = false;
-                            PlaySound(hitEnemySound); // Add this line
+                            PlaySound(hitEnemySound);
                             
                             if (!bullet.isPiercing) {
                                 bullet.isActive = false;
@@ -601,13 +597,12 @@ int main() {
                         }
                     }
                     
-                    // Enemy collisions
                     for (auto& enemy : complexEnemies) {
                         if (bullet.isActive && enemy.isActive &&
                             CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
                                 { enemy.posx, enemy.posy }, enemy.size / 2.0f)) {
                             enemy.isActive = false;
-                            PlaySound(hitEnemySound); // Add this line
+                            PlaySound(hitEnemySound);
                             
                             if (!bullet.isPiercing) {
                                 bullet.isActive = false;
@@ -767,17 +762,15 @@ int main() {
                         }
                     }
 
-                    // Check bullet collisions with meteors and enemies
                     for (auto& bullet : bullets) {
                         bool bulletHit = false;
                         
-                        // Meteor collisions
                         for (auto& meteor : meteors) {
                             if (bullet.isActive && meteor.isActive &&
                                 CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
                                     { meteor.posx + meteor.size / 2.0f, meteor.posy + meteor.size / 2.0f }, meteor.size / 2.0f)) {
                                 meteor.isActive = false;
-                                PlaySound(hitEnemySound); // Add this line
+                                PlaySound(hitEnemySound);
                                 
                                 if (!bullet.isPiercing) {
                                     bullet.isActive = false;
@@ -791,13 +784,12 @@ int main() {
                             }
                         }
                         
-                        // Enemy collisions
                         for (auto& enemy : complexEnemies) {
                             if (bullet.isActive && enemy.isActive &&
                                 CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
                                     { enemy.posx, enemy.posy }, enemy.size / 2.0f)) {
                                 enemy.isActive = false;
-                                PlaySound(hitEnemySound); // Add this line
+                                PlaySound(hitEnemySound);
                                 
                                 if (!bullet.isPiercing) {
                                     bullet.isActive = false;
@@ -922,10 +914,10 @@ int main() {
                         heavyEnemies.emplace_back(&enemyTexture, posX, posY, enemySpeed);
                     }
                     if (numLaser >= 1) {
-                        laserTurrets.emplace_back(&laserTexture, 10, HEIGHT / 3, true);     // Left turret
+                        laserTurrets.emplace_back(&laserTexture, 10, HEIGHT / 3, true);
                     }
                     if (numLaser >= 2) {
-                        laserTurrets.emplace_back(&laserTexture, WIDTH - 42, HEIGHT / 2, false);// Right turret
+                        laserTurrets.emplace_back(&laserTexture, WIDTH - 42, HEIGHT / 2, false);
                     }
 
                     maxMeteors = numMeteors;
@@ -937,13 +929,11 @@ int main() {
                     newLevel = false;
                 }
                 
-                // Respawn destroyed turrets
                 int activeTurrets = 0;
                 for (auto& turret : laserTurrets) {
                     if (turret.isActive) activeTurrets++;
                 }
                 
-                // Respawn turrets if they were destroyed
                 int expectedTurrets = 0;
                 switch (playerData.getDifficulty()) {
                     case Difficulty::EASY: expectedTurrets = 1; break;
@@ -952,12 +942,10 @@ int main() {
                 }
                 
                 if (activeTurrets < expectedTurrets) {
-                    // Respawn missing turrets after a delay
                     static float respawnTimer = 0.0f;
                     respawnTimer += GetFrameTime();
                     
-                    if (respawnTimer >= 10.0f) { // Respawn after 10 seconds
-                        // Check which turrets need respawning
+                    if (respawnTimer >= 10.0f) {
                         bool hasLeftTurret = false;
                         bool hasRightTurret = false;
                         
@@ -968,37 +956,33 @@ int main() {
                             }
                         }
                         
-                        // Respawn left turret if missing
                         if (!hasLeftTurret && expectedTurrets >= 1) {
                             laserTurrets.emplace_back(&laserTexture, 10, HEIGHT / 3, true);
                         }
                         
-                        // Respawn right turret if missing
                         if (!hasRightTurret && expectedTurrets >= 2) {
                             laserTurrets.emplace_back(&laserTexture, WIDTH - 58, HEIGHT / 2, false);
                         }
                         
-                        respawnTimer = 0.0f; // Reset timer
+                        respawnTimer = 0.0f;
                     }
                 }
                 
                 for (auto& meteor : meteors) {
-                    // Apply slow effect if active
                         float originalSpeed = meteor.speed;
                         if (player.HasSlowEnemies()) {
-                            meteor.speed *= 0.2f; // 50% speed reduction
+                            meteor.speed *= 0.2f;
                         }
                         
                         meteor.Update();
                         
-                        // Restore original speed after update
                         meteor.speed = originalSpeed;
                 }
                 for (auto& turret : laserTurrets) {
                     turret.Update();
                     if (turret.CanShoot(GetFrameTime())) {
                         turret.StartLaser();
-                        //PlaySound(laserBeamSound);
+                        PlaySound(laserBeamSound);
                     }
                 }
 
@@ -1015,17 +999,15 @@ int main() {
                 }
                 
                 for (auto& enemy : heavyEnemies) {
-                    if (!enemy.isActive) continue; // Skip inactive enemies
+                    if (!enemy.isActive) continue;
                     
                     enemy.SetPlayerPosition({ player.posx, player.posy });
                     
-                    // Apply slow effect if active
                     float originalSpeed = enemy.speed;
                     if (player.HasSlowEnemies()) {
                         enemy.speed *= 0.5f;
                     }
                     
-                    // Create a temporary vector for the Update call
                     std::vector<ComplexEnemy> tempEnemies;
                     for (auto& ce : complexEnemies) {
                         if (ce.isActive) tempEnemies.push_back(ce);
@@ -1036,23 +1018,21 @@ int main() {
                     
                     if (enemy.isActive && enemy.CanShoot(GetFrameTime())) {
                         Vector2 bulletDirection = { cos((enemy.rotation + 90) * DEG2RAD), sin((enemy.rotation + 90) * DEG2RAD) };
-                        Bullet newBullet(&enemyBulletTexture, enemy.posx + enemy.size / 2.0f, enemy.posy + enemy.size / 2.0f, 4, bulletDirection, 350.0f);
+                        Bullet newBullet(&enemyBulletTexture, enemy.posx + enemy.size / 2.0f, enemy.posy + enemy.size / 2.0f, 8, bulletDirection, 300.0f);
                         enemyBullets.push_back(newBullet);
-                        PlaySound(enemyShootSound);
+                        PlaySound(heavyHitSound);
                     }
                 }
                 for (auto& enemy : complexEnemies) {
                 enemy.SetPlayerPosition({ player.posx, player.posy });
                 
-                // Apply slow effect if active
                 float originalSpeed = enemy.speed;
                 if (player.HasSlowEnemies()) {
-                    enemy.speed *= 0.5f; // 50% speed reduction
+                    enemy.speed *= 0.5f;
                 }
                 
                 enemy.Update(complexEnemies);
                 
-                // Restore original speed after update
                 enemy.speed = originalSpeed;
                 
                 if (enemy.isActive) {
@@ -1076,68 +1056,62 @@ int main() {
                     [](Bullet& b) { return !b.isActive; }),
                     enemyBullets.end());
 
-                // Check bullet collisions with meteors and enemies
                 for (auto& turret : laserTurrets) {
-    if (turret.isActive && turret.isShooting && !player.IsShielded()) {
-        Rectangle laserRect = turret.GetLaserRect();
-        Rectangle playerRect = {
-            player.posx - player.size/2,
-            player.posy - player.size/2,
-            player.size,
-            player.size
-        };
-        
-        if (CheckCollisionRecs(laserRect, playerRect)) {
-            player.SetHealth(player.GetHealth() - 1);
-            PlaySound(hitHurtSound);
-            // Stop the laser after hitting player
-            turret.StopLaser();
-        }
-    }
-}
-
-// Heavy enemy collisions with player bullets
-for (auto& bullet : bullets) {
-    if (!bullet.isActive) continue;
-    
-    for (auto& enemy : heavyEnemies) {
-        if (!enemy.isActive) continue;
-        
-        if (CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
-                          { enemy.posx, enemy.posy }, enemy.size / 2.0f)) {
-            
-            bool enemyDestroyed = enemy.TakeDamage();
-            PlaySound(hitEnemySound);
-            
-            if (enemyDestroyed) {
-                playerData.addScore(100);
-            }
-            
-            if (!bullet.isPiercing) {
-                bullet.isActive = false;
-            } else {
-                bullet.piercingHits++;
-                if (bullet.piercingHits >= bullet.maxPiercingHits) {
-                    bullet.isActive = false;
+                    if (turret.isActive && turret.isShooting && !player.IsShielded()) {
+                        Rectangle laserRect = turret.GetLaserRect();
+                        Rectangle playerRect = {
+                            player.posx - player.size/2,
+                            player.posy - player.size/2,
+                            player.size,
+                            player.size
+                        };
+                        
+                        if (CheckCollisionRecs(laserRect, playerRect)) {
+                            player.SetHealth(player.GetHealth() - 1);
+                            PlaySound(hitHurtSound);
+                            turret.StopLaser();
+                        }
+                    }
                 }
-            }
-            break; // Exit inner loop after hit
-        }
-    }
-}
+                for (auto& bullet : bullets) {
+                    if (!bullet.isActive) continue;
+                    
+                    for (auto& enemy : heavyEnemies) {
+                        if (!enemy.isActive) continue;
+                        
+                        if (CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
+                                        { enemy.posx, enemy.posy }, enemy.size / 2.0f)) {
+                            
+                            bool enemyDestroyed = enemy.TakeDamage();
+                            PlaySound(hitEnemySound);
+                            
+                            if (enemyDestroyed) {
+                                playerData.addScore(100);
+                            }
+                            
+                            if (!bullet.isPiercing) {
+                                bullet.isActive = false;
+                            } else {
+                                bullet.piercingHits++;
+                                if (bullet.piercingHits >= bullet.maxPiercingHits) {
+                                    bullet.isActive = false;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
 
-                // Heavy enemy collision with player
                 for (auto& enemy : heavyEnemies) {
                     if (enemy.isActive && !player.IsShielded() && 
                         CheckCollision({ player.posx, player.posy }, player.size / 2.0f,
                         { enemy.posx, enemy.posy }, enemy.size / 2.0f)) {
                         enemy.isActive = false;
-                        player.SetHealth(player.GetHealth() - 2); // Heavy enemies deal more damage
+                        player.SetHealth(player.GetHealth() - 2);
                         PlaySound(hitHurtSound);
                     }
                 }
 
-                // Player bullets vs laser turrets (make them destructible)
                 for (auto& bullet : bullets) {
                     for (auto& turret : laserTurrets) {
                         if (bullet.isActive && turret.isActive &&
@@ -1152,14 +1126,13 @@ for (auto& bullet : bullets) {
                 }
                 for (auto& bullet : bullets) {
                     bool bulletHit = false;
-                    
-                    // Meteor collisions
+
                     for (auto& meteor : meteors) {
                         if (bullet.isActive && meteor.isActive &&
                             CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
                                 { meteor.posx + meteor.size / 2.0f, meteor.posy + meteor.size / 2.0f }, meteor.size / 2.0f)) {
                             meteor.isActive = false;
-                            PlaySound(hitEnemySound); // Add this line
+                            PlaySound(hitEnemySound); 
                             
                             if (!bullet.isPiercing) {
                                 bullet.isActive = false;
@@ -1173,13 +1146,12 @@ for (auto& bullet : bullets) {
                         }
                     }
                     
-                    // Enemy collisions
                     for (auto& enemy : complexEnemies) {
                         if (bullet.isActive && enemy.isActive &&
                             CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
                                 { enemy.posx, enemy.posy }, enemy.size / 2.0f)) {
                             enemy.isActive = false;
-                            PlaySound(hitEnemySound); // Add this line
+                            PlaySound(hitEnemySound);
                             
                             if (!bullet.isPiercing) {
                                 bullet.isActive = false;
@@ -1194,7 +1166,6 @@ for (auto& bullet : bullets) {
                     }
                 }
 
-                // Player collision with shield check
                 for (auto& bullet : enemyBullets) {
                     if (bullet.isActive && !player.IsShielded() && 
                         CheckCollision({ bullet.posx + bullet.size / 2.0f, bullet.posy + bullet.size / 2.0f }, bullet.size / 2.0f,
@@ -1211,7 +1182,7 @@ for (auto& bullet : bullets) {
                         { meteor.posx + meteor.size / 2.0f, meteor.posy + meteor.size / 2.0f }, meteor.size / 2.0f)) {
                         meteor.isActive = false;
                         player.SetHealth(player.GetHealth() - 1);
-                        PlaySound(hitHurtSound); // Add this line
+                        PlaySound(hitHurtSound);
                     }
                 }
 
@@ -1221,38 +1192,30 @@ for (auto& bullet : bullets) {
                         { enemy.posx, enemy.posy }, enemy.size / 2.0f)) {
                         enemy.isActive = false;
                         player.SetHealth(player.GetHealth() - 1);
-                        PlaySound(hitHurtSound); // Add this line
+                        PlaySound(hitHurtSound);
                     }
                 }
 
-                // Update upgrades
                 for (auto& upgrade : upgrades) {
                     upgrade.Update();
                 }
-                
-                // Remove inactive upgrades
+
                 upgrades.erase(std::remove_if(upgrades.begin(), upgrades.end(),
                     [](const Upgrade& u) { return !u.isActive; }),
                     upgrades.end());
-                
-                // Check upgrade pickup collisions
+
                 for (auto& upgrade : upgrades) {
                     if (upgrade.isActive && CheckCollision({ player.posx, player.posy }, player.size / 2.0f,
                         { upgrade.posx + upgrade.size / 2.0f, upgrade.posy + upgrade.size / 2.0f }, upgrade.size / 2.0f)) {
                         upgrade.isActive = false;
                         player.ApplyUpgrade((int)upgrade.type);
                         PlaySound(powerUpSound);
-                        
-                        // Add visual/audio feedback here
-                        std::cout << "Upgrade picked up!" << std::endl;
                     }
                 }
                 
                 for (size_t i = 0; i < meteors.size(); i++) {
                     if (!meteors[i].isActive) {
-                        // Create potential upgrade drop
                         CreateUpgradeDrop(upgrades, &upgradeTexture, meteors[i].posx, meteors[i].posy);
-                        
                         meteors.erase(meteors.begin() + i);
                         playerData.addScore(10);
                         i--;
@@ -1261,9 +1224,7 @@ for (auto& bullet : bullets) {
 
                 for (size_t i = 0; i < complexEnemies.size(); i++) {
                     if (!complexEnemies[i].isActive) {
-                        // Create potential upgrade drop
                         CreateUpgradeDrop(upgrades, &upgradeTexture, complexEnemies[i].posx, complexEnemies[i].posy);
-                        
                         complexEnemies.erase(complexEnemies.begin() + i);
                         playerData.addScore(50);
                         i--;
@@ -1330,23 +1291,21 @@ for (auto& bullet : bullets) {
             ClearBackground(RAYWHITE);
             bg.Draw();
             
-            // Draw game entities
             for (auto& meteor : meteors) meteor.Draw();
             for (auto& enemy : complexEnemies) enemy.Draw();
             for (auto& bullet : bullets) bullet.Draw();
             for (auto& bullet : enemyBullets) bullet.Draw();
-            for (auto& upgrade : upgrades) upgrade.Draw(); // Draw upgrades
-            for (auto& turret : laserTurrets) turret.Draw(); // Add this line
+            for (auto& upgrade : upgrades) upgrade.Draw();
+            for (auto& turret : laserTurrets) turret.Draw();
             for (auto& heavy : heavyEnemies) heavy.Draw();
             player.Draw();
             
-            // Draw UI with upgrade timers
             std::string scoreText = "SCORE: " + std::to_string(playerData.getScore());
             DrawText(scoreText.c_str(), 10, 50, 20, WHITE);
             
             DrawText(playerData.getPlayerName().c_str(), 10, 80, 20, WHITE);
             
-            // Draw upgrade status
+
             int yOffset = 110;
             if (player.GetCurrentShootCooldown() < 0.5f) {
                 DrawText("FAST SHOOTING ACTIVE!", 10, yOffset, 16, RED);
@@ -1377,7 +1336,6 @@ for (auto& bullet : bullets) {
                 yOffset += 20;
             }
             
-            // Draw health
             for (int i = 0; i < player.GetHealth(); i++) {
                 DrawTexture(healthTexture, 10 + i * (healthTexture.width + 5), 10, WHITE);
             }
@@ -1569,8 +1527,8 @@ for (auto& bullet : bullets) {
     UnloadSound(laserShootSound);
     UnloadSound(powerUpSound);
     UnloadSound(enemyShootSound);
-    //UnloadSound(laserBeamSound);
-    //UnloadSound(heavyHitSound);
+    UnloadSound(laserBeamSound);
+    UnloadSound(heavyHitSound);
 
     CloseAudioDevice();
     CloseWindow();

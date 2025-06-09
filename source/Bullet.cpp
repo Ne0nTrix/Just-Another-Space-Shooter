@@ -30,17 +30,12 @@ void Bullet::Draw() const
     if (isActive) {
         float scale = size / texture->width;
         Color bulletColor = WHITE;
-        
-        // Special visual effect for piercing bullets
         if (isPiercing) {
-            bulletColor = Color{255, 200, 100, 255}; // Golden color
-            // Add trail effect
+            bulletColor = Color{255, 200, 100, 255};
             DrawCircle((int)(posx + size/2), (int)(posy + size/2), size/2 + 2, Color{255, 200, 100, 100});
         }
         
         DrawTextureEx(*texture, {posx, posy}, 0.0f, scale, bulletColor);
-        
-        // Add glow effect for bigger bullets
         if (size > 4) {
             DrawCircle((int)(posx + size/2), (int)(posy + size/2), size/2, Color{255, 255, 100, 50});
         }
